@@ -16,6 +16,8 @@ import net.minecraft.init.Blocks;
 import net.minecraft.nbt.NBTTagCompound;
 
 import thaumcraft.api.blocks.BlocksTC;
+import thecodex6824.thaumicaugmentation.api.TABlocks;
+import thecodex6824.thaumicaugmentation.api.block.property.ITAStoneType;
 
 
 /**
@@ -71,7 +73,7 @@ public class PyramidMaterials {
 
     public static IBlockState outerBlock = headBlock; 
 
-	public static final IBlockState Entrance = BlocksTC.stoneAncientTile.getDefaultState();
+	public static final IBlockState Entrance = TABlocks.STONE.getDefaultState().withProperty(ITAStoneType.STONE_TYPE, ITAStoneType.StoneType.STONE_CRUSTED_GLOWING);
 	
 
 }

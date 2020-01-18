@@ -35,7 +35,8 @@ public class ComponentPyramidRoom extends StructureComponent {
 	public ComponentPyramidRoom(Random rand, int x, int y, int z, int type) {
 		super(type);
 
-        this.setCoordBaseMode(EnumFacing.HORIZONTALS[rand.nextInt(4)]);
+        // this.setCoordBaseMode(EnumFacing.HORIZONTALS[rand.nextInt(4)]);
+        this.setCoordBaseMode(EnumFacing.HORIZONTALS[2]);
         this.type = type;
         roomWidth = (PyramidMain.oddBias + PyramidMain.evenBias) * 3;
         roomDepth = (PyramidMain.oddBias + PyramidMain.evenBias) * 3;
@@ -79,6 +80,8 @@ public class ComponentPyramidRoom extends StructureComponent {
         int pace = PyramidMain.oddBias + PyramidMain.evenBias;
         int h = 2;
 
+        // setBlockState(world, PyramidMaterials.Entrance, 0, h, pace - 2, sbb);
+        // setBlockState(world, PyramidMaterials.Entrance, 0, h, 2*pace - 2, sbb);
         setBlockState(world, PyramidMaterials.Entrance, 0, h, pace, sbb);
         setBlockState(world, PyramidMaterials.Entrance, 0, h, 2*pace, sbb);
 
@@ -134,7 +137,7 @@ public class ComponentPyramidRoom extends StructureComponent {
             //}
         }
         if (type == PyramidMap.ROOM2LOW || type == PyramidMap.ROOM2SUDDEN_LOW) {
-            // fillWithMetadataBlocks(world, sbb, 1, roomHeight, 1, roomWidth - 1, roomHeight, roomDepth - 1, Blocks.air, 0, Blocks.air, 0, false);
+            fillWithAir(world, sbb, 1, roomHeight, 1, roomWidth - 1, roomHeight, roomDepth - 1);
         }
         return true;
 	}

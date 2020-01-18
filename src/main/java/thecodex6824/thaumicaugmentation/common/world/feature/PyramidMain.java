@@ -36,7 +36,7 @@ public class PyramidMain extends StructureComponent {
 
 	public static int floorThickness = 1;
     
-	public static int levelsTall = 7;
+	public static int levelsTall = 3;
 	
 	public int worldX; // set when we first copy the maze into the world
 	public int worldY;

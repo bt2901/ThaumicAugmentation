@@ -27,6 +27,7 @@ import net.minecraft.block.BlockFalling;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.EnumCreatureType;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.world.World;
 import net.minecraft.world.biome.Biome;
@@ -46,6 +47,8 @@ import thecodex6824.thaumicaugmentation.api.TABlocks;
 import thecodex6824.thaumicaugmentation.api.block.property.ITAStoneType;
 import thecodex6824.thaumicaugmentation.api.block.property.ITAStoneType.StoneType;
 
+import thecodex6824.thaumicaugmentation.common.world.feature.PyramidFeature;
+
 public class ChunkGeneratorEmptiness implements IChunkGenerator {
 
     protected World world;
@@ -57,6 +60,8 @@ public class ChunkGeneratorEmptiness implements IChunkGenerator {
     protected NoiseGeneratorOctaves scale;
     protected NoiseGeneratorOctaves depth;
     protected NoiseGeneratorPerlin gen4;
+
+    private static PyramidFeature PYRAMID_GEN = new PyramidFeature();
     
     protected double[] biomeWeights;
 
@@ -258,6 +263,7 @@ public class ChunkGeneratorEmptiness implements IChunkGenerator {
         for (int i = 0; i < chunk.getBiomeArray().length; ++i)
             chunk.getBiomeArray()[i] = (byte) Biome.getIdForBiome(biomes[i]);
         
+		PYRAMID_GEN.generate(world, x, z, primer);
         chunk.generateSkylightMap();
         return chunk;
     }
@@ -267,6 +273,8 @@ public class ChunkGeneratorEmptiness implements IChunkGenerator {
         BlockFalling.fallInstantly = true;
 
         BlockPos pos = new BlockPos(x * 16, 0, z * 16);
+        ChunkPos chunkpos = new ChunkPos(x, z);
+		
         Biome biome = world.getBiome(pos.add(16, 0, 16));
         rand.setSeed(world.getSeed());
         long xSeed = rand.nextLong() + 1;
@@ -276,7 +284,9 @@ public class ChunkGeneratorEmptiness implements IChunkGenerator {
         ForgeEventFactory.onChunkPopulate(true, this, world, rand, x, z, false);
         biome.decorate(world, rand, pos);
 
+        rand.setSeed(12);
         ForgeEventFactory.onChunkPopulate(false, this, world, rand, x, z, false);
+		PYRAMID_GEN.generateStructure(world, rand, chunkpos);		
         BlockFalling.fallInstantly = false;
     }
 
@@ -303,6 +313,8 @@ public class ChunkGeneratorEmptiness implements IChunkGenerator {
     }
 
     @Override
-    public void recreateStructures(Chunk chunkIn, int x, int z) {}
+    public void recreateStructures(Chunk chunkIn, int x, int z) {
+		PYRAMID_GEN.generate(world, x, z, (ChunkPrimer)null);
+	}
 
 }

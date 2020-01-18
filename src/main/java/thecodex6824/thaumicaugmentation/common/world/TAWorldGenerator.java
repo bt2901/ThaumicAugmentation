@@ -24,7 +24,6 @@ import java.util.Random;
 
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.world.World;
 import net.minecraft.world.biome.Biome;
@@ -39,14 +38,12 @@ import thecodex6824.thaumicaugmentation.common.world.WorldDataCache.WorldData;
 import thecodex6824.thaumicaugmentation.common.world.biome.IFluxBiome;
 import thecodex6824.thaumicaugmentation.common.world.feature.FractureUtils;
 import thecodex6824.thaumicaugmentation.common.world.feature.WorldGenDimensionalFracture;
-import thecodex6824.thaumicaugmentation.common.world.feature.PyramidFeature;
 
 public final class TAWorldGenerator implements IWorldGenerator {
     
     private static final int WORLD_BORDER_MAX = 29999984;
 
     private static WorldGenDimensionalFracture FRACTURE_GEN = new WorldGenDimensionalFracture();
-    private static PyramidFeature PYRAMID_GEN = new PyramidFeature();
 
     private static boolean wouldLink(World world, int chunkX, int chunkZ) {
         double factor = FractureUtils.movementRatio(world);
@@ -124,13 +121,7 @@ public final class TAWorldGenerator implements IWorldGenerator {
                     AuraHelper.drainVis(world, pos, flux, false);
                     AuraHelper.polluteAura(world, pos, flux, false);
                 }
-				if ((chunkX % 10 == 0) && (chunkZ % 10 == 0)) {
-					int posX = chunkX * 16 + 8 + MathHelper.getInt(random, -2, 2);
-					int posZ = chunkZ * 16 + 8 + MathHelper.getInt(random, -2, 2);
-					PYRAMID_GEN.generateStructure(world, random, new ChunkPos(chunkX, chunkZ));
-				}
             }
-            
             if (TAConfig.fractureGenChance.getValue() > 0) {
                 if (WorldDataCache.isInitialized())
                     generateFractures(random, chunkX, chunkZ, world);

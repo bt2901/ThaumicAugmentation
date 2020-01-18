@@ -19,10 +19,7 @@ public class PyramidFeature extends MapGenStructure {
 
 	@Override
 	protected boolean canSpawnStructureAtCoords(int chunkX, int chunkZ) {
-		System.out.println("checking if canSpawnStructureAtCoords. chunkX = " + chunkX + "; chunkZ = " + chunkZ);
-		System.out.println("World coordinates are " + (16 * chunkX + 8) + "; " + (16 * chunkZ + 8));
-		System.out.println("Result: " + (chunkZ % 10 == 0 && chunkX % 10 == 0));
-		return (chunkZ % 10 == 0 && chunkX % 10 == 0);
+		return (chunkZ % 32 == 0 && chunkX % 32 == 0);
 	}
     @Override
     public String getStructureName() {
@@ -33,12 +30,10 @@ public class PyramidFeature extends MapGenStructure {
     @Nullable
     @Override
     public BlockPos getNearestStructurePos(World worldIn, BlockPos pos, boolean findUnexplored) {
-		System.out.println("getNearestStructurePos: " + (pos));
         this.world = worldIn;
-		int averageSpacing = 1; // 20
+		int averageSpacing = 20;
 		int unknown = 11; // or 8?
 		BlockPos ans = findNearestStructurePosBySpacing(worldIn, this, pos, averageSpacing, unknown, 10387313, true, 100, findUnexplored);
-		System.out.println("result: " + (ans));
         return ans;
     }
 

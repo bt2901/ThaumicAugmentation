@@ -90,7 +90,7 @@ public class ComponentPyramidEntrance extends ComponentPyramidRoom {
                 TABlocks.STONE.getDefaultState(), TABlocks.STONE.getDefaultState(), false);
             fillWithWalls(world, sbb, pace - 1, ylevel, z, 2 * pace + 1, roomHeight, z + 3);
             fillWithBlocks(world, sbb, pace - 1, ylevel, z + 2, 2 * pace + 1, ylevel + 1, z + 3, 
-                BlocksTC.slabAncient.getDefaultState(), BlocksTC.slabAncient.getDefaultState(), false);
+                TABlocks.SLAB.getDefaultState(), TABlocks.SLAB.getDefaultState(), false);
             fillWithAir(world, sbb, pace - 1, ylevel + 1, z, 2 * pace + 1, roomHeight, z + 4);
         }
         fillWithAir(world, sbb, pace - 1, PyramidMain.height + 1, z, 2 * pace + 1, PyramidMain.height + 2, z + 8);
