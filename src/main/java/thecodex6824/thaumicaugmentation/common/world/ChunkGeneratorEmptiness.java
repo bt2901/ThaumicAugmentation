@@ -274,6 +274,7 @@ public class ChunkGeneratorEmptiness implements IChunkGenerator {
 
         BlockPos pos = new BlockPos(x * 16, 0, z * 16);
         ChunkPos chunkpos = new ChunkPos(x, z);
+		System.out.println("Populating chunk " + chunkpos);
 		
         Biome biome = world.getBiome(pos.add(16, 0, 16));
         rand.setSeed(world.getSeed());

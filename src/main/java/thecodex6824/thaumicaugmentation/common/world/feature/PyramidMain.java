@@ -36,7 +36,7 @@ public class PyramidMain extends StructureComponent {
 
 	public static int floorThickness = 1;
     
-	public static int levelsTall = 3;
+	public static int levelsTall = 7;
 	
 	public int worldX; // set when we first copy the maze into the world
 	public int worldY;
@@ -110,28 +110,6 @@ public class PyramidMain extends StructureComponent {
         }
 	}
     			
-	/**
-	 * If the worldX is set properly, this returns where in that world the maze coordinate x lies
-	 * 
-	 * @param x
-	 * @return
-	 */
-	int getWorldX(int x)
-	{
-		return worldX + (x * (evenBias + oddBias)) + 1;
-	}
-	
-	/**
-	 * If the worldZ is set properly, this returns where in that world the maze coordinate z lies
-	 * 
-	 * @param z
-	 * @return
-	 */
-	int getWorldZ(int z)
-	{
-		return worldZ + (z * (evenBias + oddBias)) + 1;
-	}
-
 	private void setFixedMazeSeed(PyramidMap pmap, int level) {
 		pmap.setSeed(this.boundingBox.minX * 90342903 + this.boundingBox.minY * 90342903 ^ this.boundingBox.minZ + level);
 	}
@@ -224,12 +202,12 @@ public class PyramidMain extends StructureComponent {
 	}
     protected ComponentPyramidRoom makeRoom(Random random, int type, int dx, int dz, int i, PyramidLevel levelBuilder) {
 
+		// TODO: seems like one of -3 is wrong, but why and which one?
 		int worldX = levelBuilder.getBoundingBox().minX + dx * (evenBias + oddBias) - 3;
 		int worldY = levelBuilder.getBoundingBox().minY;
 		int worldZ = levelBuilder.getBoundingBox().minZ + dz * (evenBias + oddBias) - 3;
         if (type == PyramidMap.ROOMCENTRAL) {
-            return new ComponentGardenRoom(random, worldX, worldY, worldZ);
-            // return new ComponentPyramidCentralRoom(random, worldX, worldY, worldZ, i);
+            return new ComponentPyramidCentralRoom(random, worldX, worldY, worldZ, i);
         }
         if (type == PyramidMap.ROOM_VPR) {
             return new ComponentGardenRoom(random, worldX, worldY, worldZ);

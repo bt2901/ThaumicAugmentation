@@ -4,6 +4,7 @@ import java.util.Collection;
 import java.util.Iterator;
 
 import net.minecraft.world.gen.structure.MapGenStructure;
+import net.minecraft.world.gen.structure.MapGenStructureIO;
 import net.minecraft.world.gen.structure.MapGenStructureData;
 import net.minecraft.world.gen.structure.StructureBoundingBox;
 import net.minecraft.world.gen.structure.StructureComponent;
@@ -12,6 +13,11 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 
 import javax.annotation.Nullable;
+
+import java.util.Random;
+
+import thecodex6824.thaumicaugmentation.common.world.WorldProviderEmptiness;
+
 
 public class PyramidFeature extends MapGenStructure {
 	
@@ -48,7 +54,7 @@ public class PyramidFeature extends MapGenStructure {
         this.rand.setSeed(chunkXr1 ^ chunkZr2 ^ world.getSeed());
         this.rand.nextInt();
 		
-		return new PyramidFeatureStart(world, rand, chunkX, chunkZ);
+		return new PyramidFeature.Start(world, rand, chunkX, chunkZ);
 	}
 	
 		
@@ -58,5 +64,37 @@ public class PyramidFeature extends MapGenStructure {
     	int highestFoundIndex = 0;
         return highestFoundIndex;
     }
+    public static class Start extends StructureStart {
+			
+		static {
+			MapGenStructureIO.registerStructure(PyramidFeature.Start.class, "ZiggurathStart");
+			MapGenStructureIO.registerStructureComponent(ComponentPyramidRoom.class, "ZRoom");
+			MapGenStructureIO.registerStructureComponent(ComponentPyramidCentralRoom.class, "ZRoomCentral");
+			MapGenStructureIO.registerStructureComponent(PyramidMain.class, "ZMain");
+			MapGenStructureIO.registerStructureComponent(ComponentPyramidEntrance.class, "ZEnter");
+			MapGenStructureIO.registerStructureComponent(PyramidLevel.class, "ZLevel");
+			// MapGenStructureIO.registerStructureComponent(ComponentPyramidStairs.class, "ZStairs");
+			// MapGenStructureIO.registerStructureComponent(ComponentVoidProductionRoom.class, "ZVPR");
+			MapGenStructureIO.registerStructureComponent(ComponentGardenRoom.class, "ZGarden");
+			// MapGenStructureIO.registerStructureComponent(ComponentPyramidTrap.class, "ZRoomTrap");
+			// MapGenStructureIO.registerStructureComponent(ComponentCoridorTrap.class, "ZCoridorTrap");
+		}
+		
+		public Start() {}
 
+		@SuppressWarnings({ "unchecked", "rawtypes" })
+		public Start(World world, Random rand, int chunkX, int chunkZ)  {
+			int x = (chunkX * 16) + 8;
+			int z = (chunkZ * 16) + 8;
+			// int yBase = WorldProviderEmptiness().getAverageGroundLevel();
+			int yBase = 56;
+			int y = yBase - 3*PyramidMain.height/2; //1.5 stores under the ground level
+
+			StructureComponent firstComponent = new PyramidMain(world, rand, x, y, z);
+			components.add(firstComponent);
+			firstComponent.buildComponent(firstComponent, components, rand);
+
+			updateBoundingBox();
+		}		
+	}
 }
