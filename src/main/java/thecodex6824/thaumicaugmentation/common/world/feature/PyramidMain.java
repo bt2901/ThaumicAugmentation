@@ -205,7 +205,7 @@ public class PyramidMain extends StructureComponent {
 		// TODO: seems like one of -3 is wrong, but why and which one?
 		int worldX = levelBuilder.getBoundingBox().minX + dx * (evenBias + oddBias) - 3;
 		int worldY = levelBuilder.getBoundingBox().minY;
-		int worldZ = levelBuilder.getBoundingBox().minZ + dz * (evenBias + oddBias) - 3;
+		int worldZ = levelBuilder.getBoundingBox().minZ + dz * (evenBias + oddBias) - 1;
         if (type == PyramidMap.ROOMCENTRAL) {
             return new ComponentPyramidCentralRoom(random, worldX, worldY, worldZ, i);
         }

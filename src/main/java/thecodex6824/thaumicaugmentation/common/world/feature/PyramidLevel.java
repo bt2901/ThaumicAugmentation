@@ -69,7 +69,7 @@ public class PyramidLevel extends StructureComponent {
 	@Override
 	public void buildComponent(StructureComponent structurecomponent, List list, Random random) {
 		super.buildComponent(structurecomponent, list, random);
-			
+		/*
 		// add traps 
         for(int x = 0; x < rawWidth; x++) {
 			for(int z = 0; z < rawDepth; z++) {
@@ -89,6 +89,7 @@ public class PyramidLevel extends StructureComponent {
                 }        
             }
         }
+		*/
 
 
 		// find dead ends and corridors and make components for them

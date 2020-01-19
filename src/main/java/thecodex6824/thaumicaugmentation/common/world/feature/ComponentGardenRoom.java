@@ -90,6 +90,7 @@ public class ComponentGardenRoom extends ComponentPyramidRoom {
         int platf = 2;
 		IBlockState glassBlock = Blocks.GLASS.getDefaultState();
 
+		fillWithAir(world, sbb, 1, 1, 1, roomWidth - 1, roomHeight - 1, roomDepth - 1);
         fillWithBlocks(world, sbb, pace, 1, pace, 2*pace, platf-1, 2*pace, brick, brick, false);
         int gardenType = rand.nextInt(4);
         switch (gardenType) {

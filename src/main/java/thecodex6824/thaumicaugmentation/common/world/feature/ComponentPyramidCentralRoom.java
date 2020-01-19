@@ -9,6 +9,7 @@ import net.minecraft.world.gen.structure.StructureComponent;
 
 import thecodex6824.thaumicaugmentation.api.TABlocks;
 import net.minecraft.world.gen.structure.template.TemplateManager;
+import net.minecraft.util.EnumFacing;
 
 
 import net.minecraft.block.state.IBlockState;
@@ -22,6 +23,7 @@ import thaumcraft.common.config.ConfigBlocks;
 
 public class ComponentPyramidCentralRoom extends ComponentPyramidRoom {
     int level;
+	private static EnumFacing[] facingOrder = {EnumFacing.EAST, EnumFacing.NORTH, EnumFacing.WEST, EnumFacing.SOUTH};
 
 	public ComponentPyramidCentralRoom() {
 		super();
@@ -30,7 +32,7 @@ public class ComponentPyramidCentralRoom extends ComponentPyramidRoom {
 	public ComponentPyramidCentralRoom(Random rand, int x, int y, int z, int i) {
 		super(rand, x, y, z, PyramidMap.ROOMCENTRAL);
         this.level = i;
-        // this.setCoordBaseMode();
+        this.setCoordBaseMode(facingOrder[level % 4]);
 	}
     
     public void createDoorway(World world, StructureBoundingBox sbb, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, IBlockState what) {
@@ -118,7 +120,14 @@ public class ComponentPyramidCentralRoom extends ComponentPyramidRoom {
         int howLong = 3;
 		// TODO: try to not use this, instead using coordbase mode
         int clock = level % 8;
-        if (clock == 0) {
+		makeStairsXPos(world, sbb, minVal, minVal + 1, roomWidth/2 + 1, startY, howLong);
+
+		int maxVal = roomWidth - 1;
+        startY = howLong - 1;
+        int startPos = 2;
+		makeStairsZPos(world, sbb, maxVal - 1, maxVal, startPos, startY, howLong);
+        /*
+		if (clock == 0) {
             makeStairsXPos(world, sbb, minVal, minVal + 1, roomWidth/2 + 1, startY, howLong);
         } else {
             makeStairsZPos(world, sbb, minVal, minVal + 1, roomDepth/2 + 1, startY, howLong);
@@ -131,7 +140,7 @@ public class ComponentPyramidCentralRoom extends ComponentPyramidRoom {
         } else {
             int maxVal = roomDepth - 1;
             makeStairsXPos(world, sbb, maxVal - 1, maxVal, startPos, startY, howLong);
-        }
+        }*/
     }
 	
 	/**
