@@ -36,7 +36,7 @@ public class PyramidMain extends StructureComponent {
 
 	public static int floorThickness = 1;
     
-	public static int levelsTall = 1;
+	public static int levelsTall = 5;
 	
 	public int worldX; // set when we first copy the maze into the world
 	public int worldY;
@@ -90,7 +90,7 @@ public class PyramidMain extends StructureComponent {
                     int prev_z = mazes.get(i-1).rcoords[j * 3 + 1];
                     int prev_t = mazes.get(i-1).rcoords[j * 3 + 2];                
                     if (prev_x != 0 && prev_z != 0 && prev_t != 0) {
-                        int nextType = newMaze.matchingRoom(prev_t);
+                        int nextType = newMaze.getMatchingRoomAbove(prev_t);
                         if (nextType != 0) {
                             newMaze.addBonusRoom(prev_x - 1, prev_z - 1, nextType);
                         } else {
@@ -162,11 +162,9 @@ public class PyramidMain extends StructureComponent {
                 int type = rooms[i * PyramidMap.ROOM_INFO_LEN + 2];
         
                 // add the room as a component
-                /*
 				ComponentPyramidRoom room = makeRoom(random, type, dx, dz, l, levelBuilder);
                 list.add(room);
                 room.buildComponent(this, list, random);
-				*/
             }
 			levelBuilder.describe();
         }
@@ -180,7 +178,7 @@ public class PyramidMain extends StructureComponent {
                 int type = rooms[i * PyramidMap.ROOM_INFO_LEN + 2];
                 
                 ComponentPyramidRoom room = null;
-                if (type == PyramidMap.ROOM2LOW || type == PyramidMap.ROOM2SUDDEN_LOW) {
+                if (type == PyramidMap.ROOM_NO_CEILING_FANCY_ENTRANCE || type == PyramidMap.ROOM_NO_CEILING) {
                     float r = random.nextFloat();
                     if (r > 0.75) {
                         room = makeRoom(random, PyramidMap.ROOM_VPR, dx, dz, l, levels.get(l));
@@ -194,20 +192,17 @@ public class PyramidMain extends StructureComponent {
                     room = makeRoom(random, PyramidMap.ENTRANCE, dx, dz, entrance_mode, levels.get(l));
                     //}
                 }
-				/*
                 if (room != null) {
                     list.add(room);
                     room.buildComponent(this, list, random);
-                }
-				*/
-				
+                }				
             }
         }
         
 	}
     protected ComponentPyramidRoom makeRoom(Random random, int type, int dx, int dz, int i, PyramidLevel levelBuilder) {
 
-		// TODO: seems like one of -3 is wrong, but why and which one?
+		// TODO: without asymmetric -3 the 1.12 version places rooms wrong. Can anyone explain why?
 		int worldX = levelBuilder.getBoundingBox().minX + dx * (evenBias + oddBias) - 3;
 		int worldY = levelBuilder.getBoundingBox().minY;
 		int worldZ = levelBuilder.getBoundingBox().minZ + dz * (evenBias + oddBias) - 1;

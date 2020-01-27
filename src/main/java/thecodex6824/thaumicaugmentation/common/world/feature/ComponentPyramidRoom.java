@@ -41,7 +41,7 @@ public class ComponentPyramidRoom extends StructureComponent {
         roomWidth = (PyramidMain.oddBias + PyramidMain.evenBias) * 3;
         roomDepth = (PyramidMain.oddBias + PyramidMain.evenBias) * 3;
         roomHeight = PyramidMain.height;
-        if (type == PyramidMap.ROOM2SUDDEN_LOW) {
+        if (type == PyramidMap.ROOM_NO_CEILING) {
             roomHeight = PyramidMain.height * 2;
         }
         this.boundingBox = new StructureBoundingBox(x, y, z, x + roomWidth, y + roomHeight, z + roomDepth);
@@ -101,7 +101,7 @@ public class ComponentPyramidRoom extends StructureComponent {
 	 */
 	@Override
 	public void buildComponent(StructureComponent structurecomponent, List list, Random random) {
-        if (type == PyramidMap.ROOM2LOW || type == PyramidMap.ROOM2SUDDEN_LOW) {
+        if (type == PyramidMap.ROOM_NO_CEILING_FANCY_ENTRANCE || type == PyramidMap.ROOM_NO_CEILING) {
         }
         /*
         if (type == PyramidMap.ROOM_TRAP) {
@@ -118,11 +118,11 @@ public class ComponentPyramidRoom extends StructureComponent {
 	@Override
 	public boolean addComponentParts(World world, Random rand, StructureBoundingBox sbb) {
         
-        // if (type == PyramidMap.ROOM2HIGH || type == PyramidMap.ROOM2LOW || type == PyramidMap.ROOMCENTRAL || type == PyramidMap.ROOM2SUDDEN_LOW) {
-        if (type == PyramidMap.ROOM2LOW || type == PyramidMap.ROOM2HIGH || type == PyramidMap.ROOM) {
+        // if (type == PyramidMap.ROOM2HIGH || type == PyramidMap.ROOM_NO_CEILING_FANCY_ENTRANCE || type == PyramidMap.ROOMCENTRAL || type == PyramidMap.ROOM_NO_CEILING) {
+        if (type == PyramidMap.ROOM_NO_CEILING_FANCY_ENTRANCE || type == PyramidMap.ROOM2HIGH || type == PyramidMap.ROOM) {
             makeFancyEntrance(world, sbb);
         }
-        if (type == PyramidMap.ROOM2SUDDEN_LOW) {
+        if (type == PyramidMap.ROOM_NO_CEILING) {
         }
         if (type == PyramidMap.ROOM_VIRTUAL) {
             fillWithAir(world, sbb, 1, 0, 1, roomWidth - 1, roomHeight - 1, roomDepth - 1);
@@ -136,7 +136,7 @@ public class ComponentPyramidRoom extends StructureComponent {
                 fillWithAir(world, sbb, roomWidth, 1, 1, roomWidth + PyramidMain.oddBias, roomHeight - 1, roomDepth - 1);
             //}
         }
-        if (type == PyramidMap.ROOM2LOW || type == PyramidMap.ROOM2SUDDEN_LOW) {
+        if (type == PyramidMap.ROOM_NO_CEILING_FANCY_ENTRANCE || type == PyramidMap.ROOM_NO_CEILING) {
             fillWithAir(world, sbb, 1, roomHeight, 1, roomWidth - 1, roomHeight, roomDepth - 1);
         }
         return true;

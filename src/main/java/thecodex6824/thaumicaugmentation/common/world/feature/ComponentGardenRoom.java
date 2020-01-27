@@ -29,7 +29,7 @@ public class ComponentGardenRoom extends ComponentPyramidRoom {
     }
 
     public ComponentGardenRoom(Random rand, int x, int y, int z) {
-        super(rand, x, y, z, PyramidMap.ROOM2SUDDEN_LOW);
+        super(rand, x, y, z, PyramidMap.ROOM_NO_CEILING_FANCY_ENTRANCE);
         this.roomHeight = PyramidMain.height;
     }
 
@@ -84,7 +84,6 @@ public class ComponentGardenRoom extends ComponentPyramidRoom {
     }
     @Override
     public boolean addComponentParts(World world, Random rand, StructureBoundingBox sbb) {
-        makeFancyEntrance(world, sbb);
         IBlockState brick = BlocksTC.stoneAncientTile.getDefaultState();
         int pace = PyramidMain.oddBias + PyramidMain.evenBias;
         int platf = 2;

@@ -33,9 +33,9 @@ public class PyramidMap {
 	public static final int OOB = OUT_OF_BOUNDS;
 	public static final int ROOM = 5;
 	public static final int ROOMCENTRAL = 6;
-	public static final int ROOM2LOW = 7;
+	public static final int ROOM_NO_CEILING_FANCY_ENTRANCE = 7;
 	public static final int ROOM2HIGH = 8;
-	public static final int ROOM2SUDDEN_LOW = 9;
+	public static final int ROOM_NO_CEILING = 9;
 	public static final int ROOM_VIRTUAL = 10;
 
 	public static final int ENTRANCE = 99;
@@ -430,10 +430,10 @@ public class PyramidMap {
 		carveCustomRoom(entranceX, entranceZ, type);
         rcoords = rcoords2;
 	}
-    public int matchingRoom(int room) {
+    public int getMatchingRoomAbove(int room) {
         switch (room) {
-            case ROOM2LOW: return ROOM2HIGH;
-            case ROOM2SUDDEN_LOW: return ROOM_VIRTUAL;
+            case ROOM_NO_CEILING_FANCY_ENTRANCE: return ROOM2HIGH;
+            case ROOM_NO_CEILING: return ROOM_VIRTUAL;
             case ROOMCENTRAL: return ROOMCENTRAL;
             default: return 0;
         }
@@ -441,13 +441,13 @@ public class PyramidMap {
     public int randomRoomShape() {
         float rf = rand.nextFloat();
         if (rf < 0.4F) {
-            return ROOM2LOW;
+            return ROOM_NO_CEILING_FANCY_ENTRANCE;
         }
         if (rf < 0.6F) {
-            return ROOM2SUDDEN_LOW;
+            return ROOM_NO_CEILING;
         }
         // return ROOM;
-        return ROOM2SUDDEN_LOW;
+        return ROOM_NO_CEILING;
     }
     
 	public void writeToNBT(NBTTagCompound par1NBTTagCompound) {

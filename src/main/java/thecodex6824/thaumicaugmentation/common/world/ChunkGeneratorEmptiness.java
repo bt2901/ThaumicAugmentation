@@ -287,7 +287,6 @@ public class ChunkGeneratorEmptiness implements IChunkGenerator {
         ForgeEventFactory.onChunkPopulate(true, this, world, rand, x, z, false);
         biome.decorate(world, rand, pos);
 
-        rand.setSeed(12);
 		PYRAMID_GEN.generateStructure(world, rand, chunkpos);
         ForgeEventFactory.onChunkPopulate(false, this, world, rand, x, z, false);
         BlockFalling.fallInstantly = false;
