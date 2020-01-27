@@ -20,8 +20,6 @@
 
 package thecodex6824.thaumicaugmentation.client.internal;
 
-import javax.annotation.Nullable;
-
 import baubles.api.BaubleType;
 import baubles.api.cap.BaublesCapabilities;
 import baubles.api.cap.IBaublesItemHandler;
@@ -33,14 +31,13 @@ import net.minecraft.init.Items;
 import net.minecraft.item.ItemElytra;
 import net.minecraft.item.ItemStack;
 import net.minecraft.network.play.client.CPacketEntityAction;
-import net.minecraft.util.EnumHand;
-import net.minecraft.util.EnumHandSide;
-import thecodex6824.thaumicaugmentation.api.TAItems;
+import thaumcraft.client.renderers.models.gear.ModelCustomArmor;
 import thecodex6824.thaumicaugmentation.api.augment.CapabilityAugment;
 import thecodex6824.thaumicaugmentation.api.augment.CapabilityAugmentableItem;
 import thecodex6824.thaumicaugmentation.api.augment.IAugment;
 import thecodex6824.thaumicaugmentation.api.augment.IAugmentableItem;
 import thecodex6824.thaumicaugmentation.api.augment.builder.IThaumostaticHarnessAugment;
+import thecodex6824.thaumicaugmentation.client.event.RenderEventHandler;
 import thecodex6824.thaumicaugmentation.common.item.trait.IElytraCompat;
 
 public final class TAHooksClient {
@@ -54,13 +51,19 @@ public final class TAHooksClient {
                 ItemStack stack = baubles.getStackInSlot(BaubleType.BODY.getValidSlots()[0]);
                 IAugmentableItem augmentable = stack.getCapability(CapabilityAugmentableItem.AUGMENTABLE_ITEM, null);
                 if (augmentable != null) {
-                    for (ItemStack augment : augmentable.getAllAugments()) {
-                        IAugment aug = augment.getCapability(CapabilityAugment.AUGMENT, null);
-                        if (aug instanceof IThaumostaticHarnessAugment) {
-                            if (!((IThaumostaticHarnessAugment) aug).shouldAllowSprintFly(player))
-                                return false;
+                    if (augmentable.getUsedAugmentSlots() > 0) {
+                        for (ItemStack augment : augmentable.getAllAugments()) {
+                            IAugment aug = augment.getCapability(CapabilityAugment.AUGMENT, null);
+                            if (aug instanceof IThaumostaticHarnessAugment) {
+                                if (!((IThaumostaticHarnessAugment) aug).shouldAllowSprintFly(player))
+                                    return false;
+                            }
                         }
+                        
+                        return sprint;
                     }
+                    else
+                        return false;
                 }
             }
         }
@@ -80,53 +83,8 @@ public final class TAHooksClient {
         }
     }
     
-    @Nullable
-    private static EnumHand findImpulseCannon(EntityLivingBase entity) {
-        ItemStack stack = entity.getHeldItemMainhand();
-        if (stack.getItem() == TAItems.IMPULSE_CANNON)
-            return EnumHand.MAIN_HAND;
-        
-        stack = entity.getHeldItemOffhand();
-        if (stack.getItem() == TAItems.IMPULSE_CANNON)
-            return EnumHand.OFF_HAND;
-        
-        return null;
-    }
-    
     public static void handleBipedRotation(ModelBiped model, Entity entity) {
-        if (entity instanceof EntityLivingBase) {
-            EntityLivingBase living = (EntityLivingBase) entity;
-            EnumHand hand = findImpulseCannon(living);
-            if (hand != null) {
-                EnumHand oppositeHand = hand == EnumHand.MAIN_HAND ? EnumHand.OFF_HAND : EnumHand.MAIN_HAND;
-                EnumHandSide side = living.getPrimaryHand();
-                if (hand == EnumHand.OFF_HAND)
-                    side = side.opposite();
-                
-                if (side == EnumHandSide.RIGHT) {
-                    model.bipedRightArm.rotateAngleX = -1.5707963F + model.bipedHead.rotateAngleX;
-                    model.bipedRightArm.rotateAngleY = model.bipedHead.rotateAngleY;
-                    model.bipedRightArm.rotateAngleZ = model.bipedHead.rotateAngleZ;
-                    
-                    if (living.getHeldItem(oppositeHand).isEmpty()) {
-                        model.bipedLeftArm.rotateAngleX = -1.5707963F + model.bipedHead.rotateAngleX;
-                        model.bipedLeftArm.rotateAngleY = model.bipedHead.rotateAngleY + 0.62831853F;
-                        model.bipedLeftArm.rotateAngleZ = model.bipedHead.rotateAngleZ;
-                    }
-                }
-                else {
-                    model.bipedLeftArm.rotateAngleX = -1.5707963F + model.bipedHead.rotateAngleX;
-                    model.bipedLeftArm.rotateAngleY = model.bipedHead.rotateAngleY;
-                    model.bipedLeftArm.rotateAngleZ = model.bipedHead.rotateAngleZ;
-                    
-                    if (living.getHeldItem(oppositeHand).isEmpty()) {
-                        model.bipedRightArm.rotateAngleX = -1.5707963F + model.bipedHead.rotateAngleX;
-                        model.bipedRightArm.rotateAngleY = model.bipedHead.rotateAngleY - 0.62831853F;
-                        model.bipedRightArm.rotateAngleZ = model.bipedHead.rotateAngleZ;
-                    }
-                }
-            }
-        }
+        RenderEventHandler.onRotationAngles(model, entity);
     }
     
     public static float getRobeRotationDivisor(Entity entity) {
@@ -138,6 +96,29 @@ public final class TAHooksClient {
         }
         
         return f;
+    }
+    
+    public static void correctRotationPoints(ModelBiped model) {
+        if (model instanceof ModelCustomArmor) {
+            if (model.isSneak) {
+                model.bipedRightLeg.rotationPointY = 13.0F;
+                model.bipedLeftLeg.rotationPointY = 13.0F;
+                model.bipedHead.rotationPointY = 4.5F;
+                
+                model.bipedBody.rotationPointY = 4.5F;
+                model.bipedRightArm.rotationPointY = 5.0F;
+                model.bipedLeftArm.rotationPointY = 5.0F;
+            }
+            else {
+                model.bipedBody.rotationPointY = 0.0F;
+                model.bipedRightArm.rotationPointY = 2.0F;
+                model.bipedLeftArm.rotationPointY = 2.0F;
+            }
+            
+            model.bipedHeadwear.rotationPointX = model.bipedHead.rotationPointX;
+            model.bipedHeadwear.rotationPointY = model.bipedHead.rotationPointY;
+            model.bipedHeadwear.rotationPointZ = model.bipedHead.rotationPointZ;
+        }
     }
     
 }

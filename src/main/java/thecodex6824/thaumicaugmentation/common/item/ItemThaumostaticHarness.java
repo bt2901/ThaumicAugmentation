@@ -31,6 +31,7 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraftforge.common.capabilities.ICapabilityProvider;
 import net.minecraftforge.common.util.Constants.NBT;
 import net.minecraftforge.fml.common.FMLCommonHandler;
+import net.minecraftforge.fml.common.Optional;
 import net.minecraftforge.fml.relauncher.Side;
 import thaumcraft.api.items.IRechargable;
 import thaumcraft.api.items.RechargeHelper;
@@ -43,9 +44,12 @@ import thecodex6824.thaumicaugmentation.api.augment.IAugmentableItem;
 import thecodex6824.thaumicaugmentation.api.augment.builder.IThaumostaticHarnessAugment;
 import thecodex6824.thaumicaugmentation.api.entity.PlayerMovementAbilityManager;
 import thecodex6824.thaumicaugmentation.common.capability.CapabilityProviderHarness;
+import thecodex6824.thaumicaugmentation.common.integration.IntegrationHandler;
 import thecodex6824.thaumicaugmentation.common.item.prefab.ItemTABase;
+import vazkii.botania.api.item.IPhantomInkable;
 
-public class ItemThaumostaticHarness extends ItemTABase implements IRechargable {
+@Optional.Interface(iface = "vazkii.botania.api.item.IPhantomInkable", modid = IntegrationHandler.BOTANIA_MOD_ID)
+public class ItemThaumostaticHarness extends ItemTABase implements IRechargable, IPhantomInkable {
 
     protected static final int DEFAULT_VIS_CAPACITY = 200;
     protected static final int DEFAULT_VIS_COST = 2;
@@ -156,7 +160,7 @@ public class ItemThaumostaticHarness extends ItemTABase implements IRechargable 
                         PlayerMovementAbilityManager.recordFlyState(player);
                         player.capabilities.allowFlying = true;
                         if (player.world.isRemote)
-                            player.capabilities.setFlySpeed(speed);
+                            player.capabilities.flySpeed = speed;
                         
                         player.sendPlayerAbilities();
                     }
@@ -186,7 +190,7 @@ public class ItemThaumostaticHarness extends ItemTABase implements IRechargable 
                                     player.capabilities.isFlying = false;
                                 }
                                 
-                                player.capabilities.setFlySpeed(0.05F);
+                                player.capabilities.flySpeed = 0.05F;
                                 player.sendPlayerAbilities();
                             }
                         }
@@ -204,16 +208,14 @@ public class ItemThaumostaticHarness extends ItemTABase implements IRechargable 
                                 player.capabilities.isFlying = false;
                             }
                             
-                            player.capabilities.setFlySpeed(0.05F);
+                            player.capabilities.flySpeed = 0.05F;
                             player.sendPlayerAbilities();
                         }
                     }
                     else if (!player.world.isRemote) {
                         PlayerMovementAbilityManager.recordFlyState(player);
                         player.capabilities.allowFlying = true;
-                        if (player.world.isRemote)
-                            player.capabilities.setFlySpeed(getHarnessFlySpeed(itemstack, player));
-                        
+                        player.capabilities.flySpeed = getHarnessFlySpeed(itemstack, player);
                         player.sendPlayerAbilities();
                     }
                 }
@@ -229,7 +231,7 @@ public class ItemThaumostaticHarness extends ItemTABase implements IRechargable 
                             player.capabilities.isFlying = false;
                         }
                         
-                        player.capabilities.setFlySpeed(0.05F);
+                        player.capabilities.flySpeed = 0.05F;
                         player.sendPlayerAbilities();
                     }
                 }
@@ -256,10 +258,33 @@ public class ItemThaumostaticHarness extends ItemTABase implements IRechargable 
     }
     
     @Override
+    @Optional.Method(modid = IntegrationHandler.BOTANIA_MOD_ID)
+    public boolean hasPhantomInk(ItemStack stack) {
+        if (stack.hasTagCompound())
+            return stack.getTagCompound().getBoolean("phantomInk");
+        
+        return false;
+    }
+    
+    @Override
+    @Optional.Method(modid = IntegrationHandler.BOTANIA_MOD_ID)
+    public void setPhantomInk(ItemStack stack, boolean ink) {
+        if (!stack.hasTagCompound())
+            stack.setTagCompound(new NBTTagCompound());
+        
+        stack.getTagCompound().setBoolean("phantomInk", ink);
+    }
+    
+    @Override
     public NBTTagCompound getNBTShareTag(ItemStack stack) {
         NBTTagCompound tag = new NBTTagCompound();
-        if (stack.hasTagCompound())
-            tag.setTag("item", stack.getTagCompound());
+        if (stack.hasTagCompound()) {
+            NBTTagCompound item = stack.getTagCompound().copy();
+            if (FMLCommonHandler.instance().getEffectiveSide() == Side.CLIENT && !ThaumicAugmentation.proxy.isSingleplayer())
+                item.removeTag("cap");
+            
+            tag.setTag("item", item);
+        }
         
         tag.setTag("cap", ((AugmentableItem) stack.getCapability(CapabilityAugmentableItem.AUGMENTABLE_ITEM, null)).serializeNBT());
         return tag;
@@ -268,8 +293,14 @@ public class ItemThaumostaticHarness extends ItemTABase implements IRechargable 
     @Override
     public void readNBTShareTag(ItemStack stack, @Nullable NBTTagCompound nbt) {
         if (nbt != null) {
+            ((AugmentableItem) stack.getCapability(CapabilityAugmentableItem.AUGMENTABLE_ITEM, null)).deserializeNBT(nbt.getCompoundTag("cap"));
             if (nbt.hasKey("item", NBT.TAG_COMPOUND))
                 stack.setTagCompound(nbt.getCompoundTag("item"));
+            else if (FMLCommonHandler.instance().getEffectiveSide() == Side.SERVER) {
+                nbt.removeTag("cap");
+                if (!nbt.isEmpty())
+                    stack.setTagCompound(nbt);
+            }
             
             if (FMLCommonHandler.instance().getEffectiveSide() == Side.CLIENT && !ThaumicAugmentation.proxy.isSingleplayer()) {
                 if (!stack.hasTagCompound())
@@ -277,8 +308,6 @@ public class ItemThaumostaticHarness extends ItemTABase implements IRechargable 
                 
                 stack.getTagCompound().setTag("cap", nbt.getCompoundTag("cap"));
             }
-            
-            ((AugmentableItem) stack.getCapability(CapabilityAugmentableItem.AUGMENTABLE_ITEM, null)).deserializeNBT(nbt.getCompoundTag("cap"));
         }
     }
     

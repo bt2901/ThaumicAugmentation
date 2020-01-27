@@ -20,9 +20,14 @@
 
 package thecodex6824.thaumicaugmentation.common.entity;
 
+import java.util.List;
 import java.util.Random;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import javax.annotation.Nullable;
+
+import com.google.common.collect.ImmutableList;
 
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import net.minecraft.entity.Entity;
@@ -34,6 +39,7 @@ import net.minecraft.entity.ai.EntityAIWatchClosest;
 import net.minecraft.entity.monster.IMob;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
+import net.minecraft.util.DamageSource;
 import net.minecraft.util.EnumHand;
 import net.minecraft.world.DifficultyInstance;
 import net.minecraft.world.World;
@@ -42,6 +48,7 @@ import thaumcraft.api.casters.FocusNode;
 import thaumcraft.api.casters.FocusPackage;
 import thaumcraft.api.casters.IFocusElement;
 import thaumcraft.api.entities.IEldritchMob;
+import thaumcraft.api.items.ItemsTC;
 import thaumcraft.common.entities.monster.EntityEldritchGuardian;
 import thaumcraft.common.entities.monster.boss.EntityEldritchGolem;
 import thaumcraft.common.entities.monster.boss.EntityEldritchWarden;
@@ -56,8 +63,12 @@ import thaumcraft.common.items.casters.foci.FocusEffectFrost;
 import thaumcraft.common.items.casters.foci.FocusMediumBolt;
 import thaumcraft.common.items.casters.foci.FocusMediumProjectile;
 import thecodex6824.thaumicaugmentation.api.TAItems;
+import thecodex6824.thaumicaugmentation.common.item.foci.FocusEffectWater;
+import thecodex6824.thaumicaugmentation.common.util.WeightedRandom;
 
 public class EntityAutocasterEldritch extends EntityAutocasterBase implements IMob, IEldritchMob {
+    
+    protected static final List<Integer> FOCUS_RANGE = IntStream.range(0, 7).boxed().collect(Collectors.toList());
     
     // all words based on R'lyehian words on https://www.yog-sothoth.com/wiki/index.php/R'lyehian
     protected static final String[] PREFIXES = new String[] {
@@ -201,15 +212,82 @@ public class EntityAutocasterEldritch extends EntityAutocasterBase implements IM
         return str.toString();
     }
     
+    protected FocusNode generateEffectForDifficulty(DifficultyInstance difficulty, Random rand, FocusNode medium) {
+        ImmutableList<Integer> weights = ImmutableList.of(2, 2, 2, 2, 1, 1, world.getDifficulty().getId());
+        WeightedRandom<Integer> picker = new WeightedRandom<>(FOCUS_RANGE, weights);
+        FocusNode effect = null;
+        switch (picker.get(rand)) {
+            case 0: {
+                effect = new FocusEffectAir();
+                effect.getSetting("power").setValue(5);
+                break;
+            }
+            case 1: {
+                effect = new FocusEffectEarth();
+                effect.getSetting("power").setValue(5);
+                break;
+            }
+            case 2: {
+                effect = new FocusEffectFire();
+                effect.getSetting("power").setValue(5);
+                effect.getSetting("duration").setValue(rand.nextInt(3) + 3);
+                break;
+            }
+            case 3: {
+                effect = new FocusEffectFrost();
+                effect.getSetting("power").setValue(5);
+                effect.getSetting("duration").setValue(rand.nextInt(6) + 5);
+                break;
+            }
+            case 4: {
+                effect = new FocusEffectWater();
+                effect.getSetting("power").setValue(5);
+                break;
+            }
+            case 5: {
+                effect = new FocusEffectCurse();
+                effect.getSetting("power").setValue(5);
+                int durationOffset = 5;
+                // maxed out projectile + curse takes 36 complexity
+                if (medium instanceof FocusMediumProjectile) {
+                    FocusMediumProjectile p = (FocusMediumProjectile) medium;
+                    if (p.getSetting("speed").getValue() == 5 && p.getSetting("option").getValue() == 2)
+                        durationOffset = 4;
+                }
+                
+                effect.getSetting("duration").setValue(rand.nextInt(6) + durationOffset);
+                break;
+            }
+            case 6:
+            default: {
+                effect = new FocusEffectFlux();
+                effect.getSetting("power").setValue(5);
+                break;
+            }
+        }
+        
+        return effect;
+    }
+    
     @Override
     @Nullable
     public IEntityLivingData onInitialSpawn(DifficultyInstance difficulty, @Nullable IEntityLivingData livingdata) {
+        return onInitialSpawn(difficulty, livingdata, false);
+    }
+    
+    @Nullable
+    public IEntityLivingData onInitialSpawn(DifficultyInstance difficulty, @Nullable IEntityLivingData livingdata, boolean randomFocus) {
         if (!world.isRemote) {
-            Random random = new Random(world.getSeed());
-            long xSeed = random.nextLong();
-            long ySeed = random.nextLong();
-            long zSeed = random.nextLong();
-            random.setSeed((xSeed * (int) posX + ySeed * (int) posY + zSeed * (int) posZ) ^ world.getSeed());
+            Random random = null;
+            if (!randomFocus) {
+                random = new Random(world.getSeed());
+                long xSeed = random.nextLong();
+                long ySeed = random.nextLong();
+                long zSeed = random.nextLong();
+                random.setSeed((xSeed * (int) posX + ySeed * (int) posY + zSeed * (int) posZ) ^ world.getSeed());
+            }
+            else
+                random = rand;
             
             ItemStack focus = new ItemStack(TAItems.FOCUS_ANCIENT);
             FocusPackage core = new FocusPackage();
@@ -229,57 +307,7 @@ public class EntityAutocasterEldritch extends EntityAutocasterBase implements IM
             }
             medium.setParent(root);
             core.addNode(medium);
-            FocusNode effect = null;
-            switch (random.nextInt(11)) {
-                case 0:
-                case 1: {
-                    effect = new FocusEffectAir();
-                    effect.getSetting("power").setValue(5);
-                    break;
-                }
-                case 2: 
-                case 3: {
-                    effect = new FocusEffectEarth();
-                    effect.getSetting("power").setValue(5);
-                    break;
-                }
-                case 4:
-                case 5: {
-                    effect = new FocusEffectFire();
-                    effect.getSetting("power").setValue(5);
-                    effect.getSetting("duration").setValue(random.nextInt(3) + 3);
-                    break;
-                }
-                case 6:
-                case 7: {
-                    effect = new FocusEffectFrost();
-                    effect.getSetting("power").setValue(5);
-                    effect.getSetting("duration").setValue(random.nextInt(6) + 5);
-                    break;
-                }
-                case 8:
-                case 9: {
-                    effect = new FocusEffectFlux();
-                    effect.getSetting("power").setValue(5);
-                    break;
-                }
-                case 10: 
-                default: {
-                    effect = new FocusEffectCurse();
-                    effect.getSetting("power").setValue(5);
-                    int durationOffset = 5;
-                    // maxed out projectile + curse takes 36 complexity
-                    if (medium instanceof FocusMediumProjectile) {
-                        FocusMediumProjectile p = (FocusMediumProjectile) medium;
-                        if (p.getSetting("speed").getValue() == 5 && p.getSetting("option").getValue() == 2)
-                            durationOffset = 4;
-                    }
-                    
-                    effect.getSetting("duration").setValue(random.nextInt(6) + durationOffset);
-                    break;
-                }
-            }
-            
+            FocusNode effect = generateEffectForDifficulty(difficulty, random, medium);
             effect.setParent(medium);
             core.addNode(effect);
             focus.setStackDisplayName(getRandomFocusName(random));
@@ -317,6 +345,21 @@ public class EntityAutocasterEldritch extends EntityAutocasterBase implements IM
     @Override
     public boolean isOnSameTeam(Entity entity) {
         return entity instanceof IEldritchMob;
+    }
+    
+    @Override
+    protected void dropItemFromPlacement() {}
+    
+    @Override
+    protected int getHealRate() {
+        return 80;
+    }
+    
+    @Override
+    public void onDeath(DamageSource cause) {
+        super.onDeath(cause);
+        if (!world.isRemote)
+            entityDropItem(new ItemStack(ItemsTC.plate, rand.nextInt(3) + 1, 3), 0.5F);
     }
 
 }

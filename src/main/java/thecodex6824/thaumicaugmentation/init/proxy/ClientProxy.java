@@ -40,6 +40,7 @@ import net.minecraft.client.renderer.entity.RenderPlayer;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.inventory.EntityEquipmentSlot;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
@@ -79,6 +80,9 @@ import thecodex6824.thaumicaugmentation.api.ThaumicAugmentationAPI;
 import thecodex6824.thaumicaugmentation.api.augment.AugmentAPI;
 import thecodex6824.thaumicaugmentation.api.augment.CapabilityAugment;
 import thecodex6824.thaumicaugmentation.api.augment.CapabilityAugmentableItem;
+import thecodex6824.thaumicaugmentation.api.augment.IAugment;
+import thecodex6824.thaumicaugmentation.api.augment.IAugmentableItem;
+import thecodex6824.thaumicaugmentation.api.augment.builder.IElytraHarnessAugment;
 import thecodex6824.thaumicaugmentation.api.augment.builder.caster.CasterAugmentBuilder;
 import thecodex6824.thaumicaugmentation.api.augment.builder.caster.ICustomCasterAugment;
 import thecodex6824.thaumicaugmentation.api.client.ImpetusRenderingManager;
@@ -89,6 +93,7 @@ import thecodex6824.thaumicaugmentation.api.item.CapabilityBiomeSelector;
 import thecodex6824.thaumicaugmentation.api.item.CapabilityMorphicTool;
 import thecodex6824.thaumicaugmentation.api.item.IBiomeSelector;
 import thecodex6824.thaumicaugmentation.api.item.IDyeableItem;
+import thecodex6824.thaumicaugmentation.api.tile.IImpetusGate;
 import thecodex6824.thaumicaugmentation.api.util.DimensionalBlockPos;
 import thecodex6824.thaumicaugmentation.api.warded.storage.CapabilityWardStorage;
 import thecodex6824.thaumicaugmentation.api.warded.storage.ClientWardStorageValue;
@@ -96,6 +101,8 @@ import thecodex6824.thaumicaugmentation.api.warded.storage.IWardStorage;
 import thecodex6824.thaumicaugmentation.api.warded.storage.IWardStorageClient;
 import thecodex6824.thaumicaugmentation.api.warded.storage.WardStorageClient;
 import thecodex6824.thaumicaugmentation.api.warded.storage.WardStorageServer;
+import thecodex6824.thaumicaugmentation.client.event.ClientEventHandler;
+import thecodex6824.thaumicaugmentation.client.event.ClientLivingEquipmentChangeEvent;
 import thecodex6824.thaumicaugmentation.client.event.RenderEventHandler;
 import thecodex6824.thaumicaugmentation.client.fx.FXBlockWardFixed;
 import thecodex6824.thaumicaugmentation.client.gui.GUIArcaneTerraformer;
@@ -131,6 +138,7 @@ import thecodex6824.thaumicaugmentation.common.item.ItemCustomCasterStrengthProv
 import thecodex6824.thaumicaugmentation.common.item.ItemFractureLocator;
 import thecodex6824.thaumicaugmentation.common.item.ItemKey;
 import thecodex6824.thaumicaugmentation.common.network.PacketAugmentableItemSync;
+import thecodex6824.thaumicaugmentation.common.network.PacketBaubleChange;
 import thecodex6824.thaumicaugmentation.common.network.PacketBiomeUpdate;
 import thecodex6824.thaumicaugmentation.common.network.PacketConfigSync;
 import thecodex6824.thaumicaugmentation.common.network.PacketEntityCast;
@@ -140,6 +148,7 @@ import thecodex6824.thaumicaugmentation.common.network.PacketFullWardSync;
 import thecodex6824.thaumicaugmentation.common.network.PacketImpetusNodeUpdate;
 import thecodex6824.thaumicaugmentation.common.network.PacketImpetusTransaction;
 import thecodex6824.thaumicaugmentation.common.network.PacketImpulseBeam;
+import thecodex6824.thaumicaugmentation.common.network.PacketLivingEquipmentChange;
 import thecodex6824.thaumicaugmentation.common.network.PacketParticleEffect;
 import thecodex6824.thaumicaugmentation.common.network.PacketRiftJarInstability;
 import thecodex6824.thaumicaugmentation.common.network.PacketWardUpdate;
@@ -210,6 +219,11 @@ public class ClientProxy extends ServerProxy {
     }
     
     @Override
+    public boolean isEntityClientPlayer(Entity e) {
+        return e == Minecraft.getMinecraft().player;
+    }
+    
+    @Override
     public Object getClientGUIElement(int ID, EntityPlayer player, World world, int x, int y, int z) {
         switch (TAInventory.values()[ID]) {
             case WARDED_CHEST: return new GUIWardedChest(getServerGUIElement(ID, player, world, x, y, z), player.inventory);
@@ -262,6 +276,10 @@ public class ClientProxy extends ServerProxy {
             handleFXShieldPacket((PacketFXShield) message, context);
         else if (message instanceof PacketImpulseBeam)
             handleImpulseBeamPacket((PacketImpulseBeam) message, context);
+        else if (message instanceof PacketLivingEquipmentChange)
+            handleLivingEquipmentChangePacket((PacketLivingEquipmentChange) message, context);
+        else if (message instanceof PacketBaubleChange)
+            handleBaubleChangePacket((PacketBaubleChange) message, context);
         else
             ThaumicAugmentation.getLogger().warn("An unknown packet was received and will be dropped: " + message.getClass().toString());
     }
@@ -414,6 +432,44 @@ public class ClientProxy extends ServerProxy {
                         fx.setLoop(true);
                         fx.setRotationSpeed(rand.nextFloat(), rand.nextBoolean() ? 1.0F : -1.0F);
                         ParticleEngine.addEffect(Minecraft.getMinecraft().world, fx);
+                    }
+                    
+                    break;
+                }
+                case SPLASH_BATCH: {
+                    if (d.length % 3 == 0) {
+                        for (int i = 0; i < d.length; i += 3) {
+                            double x = d[i], y = d[i + 1], z = d[i + 2];
+                            World world = Minecraft.getMinecraft().world;
+                            world.spawnParticle(EnumParticleTypes.WATER_SPLASH, false, x, y, z, (world.rand.nextFloat() - world.rand.nextFloat()) * 0.5,
+                                    (world.rand.nextFloat() - world.rand.nextFloat()) * 0.5, (world.rand.nextFloat() - world.rand.nextFloat()) * 0.5);
+                        }
+                    }
+                    
+                    break;
+                }
+                case SMOKE_LARGE: {
+                    if (d.length == 3) {
+                        double x = d[0], y = d[1], z = d[2];
+                        Minecraft.getMinecraft().world.spawnParticle(EnumParticleTypes.SMOKE_LARGE, false,
+                                x, y, z, 0, 0.05, 0);
+                    }
+                    
+                    break;
+                }
+                case FIRE_MULTIPLE_RAND: {
+                    if (d.length == 5) {
+                        double x = d[0], y = d[1], z = d[2];
+                        float size = (float) d[3];
+                        int color = (int) d[4];
+                        float r = ((color >> 16) & 0xFF) / 255.0F;
+                        float g = ((color >> 8) & 0xFF) / 255.0F;
+                        float b = (color & 0xFF) / 255.0F;
+                        for (int i = 0; i < rand.nextInt(4) + 3; ++i) {
+                            FXDispatcher.INSTANCE.drawFireMote((float) x + (rand.nextFloat() - rand.nextFloat()),
+                                    (float) y + (rand.nextFloat() - rand.nextFloat()), (float) z + (rand.nextFloat() - rand.nextFloat()),
+                                    0, 0, 0, r, g, b, 0.75F, size);
+                        }
                     }
                     
                     break;
@@ -577,6 +633,23 @@ public class ClientProxy extends ServerProxy {
         if (entity instanceof EntityLivingBase)
             RenderEventHandler.onImpulseBeam((EntityLivingBase) entity, message.shouldStopBeam());
     }
+    
+    protected void handleLivingEquipmentChangePacket(PacketLivingEquipmentChange message, MessageContext context) {
+        Entity entity = Minecraft.getMinecraft().world.getEntityByID(message.getEntityID());
+        if (entity instanceof EntityLivingBase) {
+            ClientEventHandler.onClientEquipmentChange(new ClientLivingEquipmentChangeEvent((EntityLivingBase) entity,
+                    message.getSlot(), message.getStack()));
+        }
+    }
+    
+    protected void handleBaubleChangePacket(PacketBaubleChange message, MessageContext context) {
+        Entity entity = Minecraft.getMinecraft().world.getEntityByID(message.getEntityID());
+        if (entity instanceof EntityLivingBase) {
+            // this is my internal code so faking args like this is fine (they are unused atm anyway)
+            ClientEventHandler.onClientEquipmentChange(new ClientLivingEquipmentChangeEvent((EntityLivingBase) entity,
+                    EntityEquipmentSlot.HEAD, ItemStack.EMPTY));
+        }
+    }
 
     @Override
     public void preInit() {
@@ -650,7 +723,7 @@ public class ClientProxy extends ServerProxy {
 
     private static void registerItemColorHandlers() {
         ItemColors registerTo = Minecraft.getMinecraft().getItemColors();
-        IItemColor casterFocusColors = new IItemColor() {
+        registerTo.registerItemColorHandler(new IItemColor() {
             @Override
             public int colorMultiplier(ItemStack stack, int tintIndex) {
                 if (tintIndex == 1 && stack.getItem() instanceof ICaster && ((ICaster) stack.getItem()).getFocus(stack) != null)
@@ -660,10 +733,9 @@ public class ClientProxy extends ServerProxy {
 
                 return -1;
             }
-        };
-        registerTo.registerItemColorHandler(casterFocusColors, TAItems.GAUNTLET);
+        }, TAItems.GAUNTLET);
 
-        IItemColor keyIDColors = new IItemColor() {
+        registerTo.registerItemColorHandler(new IItemColor() {
             @Override
             public int colorMultiplier(ItemStack stack, int tintIndex) {
                 if (tintIndex == 1 && stack.getItem() instanceof ItemKey)
@@ -671,10 +743,9 @@ public class ClientProxy extends ServerProxy {
 
                 return -1;
             }
-        };
-        registerTo.registerItemColorHandler(keyIDColors, TAItems.KEY);
+        }, TAItems.KEY);
 
-        IItemColor dyeableMisc = new IItemColor() {
+        registerTo.registerItemColorHandler(new IItemColor() {
             @Override
             public int colorMultiplier(ItemStack stack, int tintIndex) {
                 if (tintIndex == 1 && stack.getItem() instanceof IDyeableItem)
@@ -682,10 +753,9 @@ public class ClientProxy extends ServerProxy {
 
                 return -1;
             }
-        };
-        registerTo.registerItemColorHandler(dyeableMisc, TAItems.VOID_BOOTS);
+        }, TAItems.VOID_BOOTS);
         
-        IItemColor augmentCrystal = new IItemColor() {
+        registerTo.registerItemColorHandler(new IItemColor() {
             @Override
             public int colorMultiplier(ItemStack stack, int tintIndex) {
                 if (tintIndex == 1 && stack.getCapability(CapabilityAugment.AUGMENT, null) instanceof ICustomCasterAugment) {
@@ -694,10 +764,9 @@ public class ClientProxy extends ServerProxy {
                 }
                 return -1;
             }
-        };
-        registerTo.registerItemColorHandler(augmentCrystal, TAItems.AUGMENT_CUSTOM);
+        }, TAItems.AUGMENT_CUSTOM);
         
-        IItemColor fractureLocatorColor = new IItemColor() {
+        registerTo.registerItemColorHandler(new IItemColor() {
             @Override
             public int colorMultiplier(ItemStack stack, int tintIndex) {
                 if (tintIndex == 1 && stack.getItem() instanceof ItemFractureLocator)
@@ -705,10 +774,9 @@ public class ClientProxy extends ServerProxy {
                 
                 return -1;
             }
-        };
-        registerTo.registerItemColorHandler(fractureLocatorColor, TAItems.FRACTURE_LOCATOR);
+        }, TAItems.FRACTURE_LOCATOR);
         
-        IItemColor morphicTool = new IItemColor() {
+        registerTo.registerItemColorHandler(new IItemColor() {
             @Override
             public int colorMultiplier(ItemStack stack, int tintIndex) {
                 ItemStack display = stack.getCapability(CapabilityMorphicTool.MORPHIC_TOOL, null).getDisplayStack();
@@ -717,10 +785,9 @@ public class ClientProxy extends ServerProxy {
                 else
                     return -1;
             }
-        };
-        registerTo.registerItemColorHandler(morphicTool, TAItems.MORPHIC_TOOL);
+        }, TAItems.MORPHIC_TOOL);
         
-        IItemColor biomeSelector = new IItemColor() {
+        registerTo.registerItemColorHandler(new IItemColor() {
             @Override
             public int colorMultiplier(ItemStack stack, int tintIndex) {
                 IBiomeSelector selected = stack.getCapability(CapabilityBiomeSelector.BIOME_SELECTOR, null);
@@ -728,14 +795,15 @@ public class ClientProxy extends ServerProxy {
                     Biome biome = Biome.REGISTRY.getObject(selected.getBiomeID());
                     if (biome != null)
                         return biome.getGrassColorAtPos(Minecraft.getMinecraft().player.getPosition());
+                    else if (selected.getBiomeID().equals(IBiomeSelector.RESET))
+                        return 0xFF1493;
                 }
                 
                 return -1;
             }
-        };
-        registerTo.registerItemColorHandler(biomeSelector, TAItems.BIOME_SELECTOR);
+        }, TAItems.BIOME_SELECTOR);
         
-        IItemColor focus = new IItemColor() {
+        registerTo.registerItemColorHandler(new IItemColor() {
             @Override
             public int colorMultiplier(ItemStack stack, int tintIndex) {
                 if (tintIndex == 0 && stack.getItem() instanceof ItemFocus)
@@ -743,8 +811,25 @@ public class ClientProxy extends ServerProxy {
                 
                 return -1;
             }
-        };
-        registerTo.registerItemColorHandler(focus, TAItems.FOCUS_ANCIENT);
+        }, TAItems.FOCUS_ANCIENT);
+        
+        registerTo.registerItemColorHandler(new IItemColor() {
+            @Override
+            public int colorMultiplier(ItemStack stack, int tintIndex) {
+                if (tintIndex == 0) {
+                    IAugmentableItem item = stack.getCapability(CapabilityAugmentableItem.AUGMENTABLE_ITEM, null);
+                    if (item != null) {
+                        for (ItemStack augment : item.getAllAugments()) {
+                            IAugment a = augment.getCapability(CapabilityAugment.AUGMENT, null);
+                            if (a instanceof IElytraHarnessAugment && ((IElytraHarnessAugment) a).isCosmetic())
+                                return ((IElytraHarnessAugment) a).getCosmeticItemTint();
+                        }
+                    }
+                }
+                
+                return -1;
+            }
+        }, TAItems.ELYTRA_HARNESS);
     }
     
     private static void registerBlockColorHandlers() {
@@ -778,6 +863,31 @@ public class ClientProxy extends ServerProxy {
             }
         };
         registerTo.registerBlockColorHandler(terraformer, TABlocks.ARCANE_TERRAFORMER);
+        
+        IBlockColor gate = new IBlockColor() {
+            @Override
+            public int colorMultiplier(IBlockState state, @Nullable IBlockAccess world, @Nullable BlockPos pos,
+                    int tintIndex) {
+                
+                if (tintIndex == 1 && world != null && pos != null) {
+                    TileEntity tile = world.getTileEntity(pos);
+                    if (tile instanceof IImpetusGate) {
+                        if (((IImpetusGate) tile).isInRedstoneMode())
+                            return 0xAA0000;
+                        else {
+                            int level = ((IImpetusGate) tile).getManualLimitLevel();
+                            if (level > -1 && level < 16) {
+                                int component = (int) (level / 15.0 * 255.0) & 0xFF;
+                                return (component << 16) | component;
+                            }
+                        }
+                    }
+                }
+                
+                return -1;
+            }
+        };
+        registerTo.registerBlockColorHandler(gate, TABlocks.IMPETUS_GATE);
     }
 
 }

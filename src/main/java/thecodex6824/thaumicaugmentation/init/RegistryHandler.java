@@ -118,6 +118,7 @@ import thecodex6824.thaumicaugmentation.common.recipe.CustomAugmentCreationRecip
 import thecodex6824.thaumicaugmentation.common.recipe.DyeableItemRecipe;
 import thecodex6824.thaumicaugmentation.common.recipe.ElementChangeRecipe;
 import thecodex6824.thaumicaugmentation.common.recipe.MorphicToolUnbindingRecipe;
+import thecodex6824.thaumicaugmentation.common.recipe.PrimalCutterAbilityRecipe;
 import thecodex6824.thaumicaugmentation.common.recipe.ThaumiumKeyCopyRecipe;
 import thecodex6824.thaumicaugmentation.common.tile.TileArcaneDoor;
 import thecodex6824.thaumicaugmentation.common.tile.TileArcaneTerraformer;
@@ -238,7 +239,7 @@ public final class RegistryHandler {
         }
 
         registry.register(setupItem(new ItemTieredCasterGauntlet(), "gauntlet"));
-        registry.register(setupItem(new ItemTABase("lattice", "warding_sigil", "amalgamated_gear", "rift_energy_cell", "harness_base"), "material"));
+        registry.register(setupItem(new ItemTABase("lattice", "warding_sigil", "amalgamated_gear", "rift_energy_cell", "harness_base", "impetus_resonator"), "material"));
         registry.register(setupItem(new ItemSealCopier(), "seal_copier"));
         registry.register(setupItem(new ItemArcaneDoor(), "arcane_door"));
         registry.register(setupItem(new ItemKey(), "key"));
@@ -273,7 +274,7 @@ public final class RegistryHandler {
         
         RecipeHandler.initInfusionRecipes();
         RecipeHandler.initCrucibleRecipes();
-        RecipeHandler.initArcaneCraftingRecipes();
+        RecipeHandler.initFakeArcaneCraftingRecipes();
         RecipeHandler.initMultiblocks();
         
         event.getRegistry().register(new DyeableItemRecipe().setRegistryName(new ResourceLocation(ThaumicAugmentationAPI.MODID, "dyeable_item")));
@@ -284,6 +285,7 @@ public final class RegistryHandler {
         event.getRegistry().register(new ElementChangeRecipe().setRegistryName(new ResourceLocation(ThaumicAugmentationAPI.MODID, "element_swap")));
         event.getRegistry().register(new CustomAugmentCreationRecipe().setRegistryName(new ResourceLocation(ThaumicAugmentationAPI.MODID, "custom_augment")));
         event.getRegistry().register(new MorphicToolUnbindingRecipe().setRegistryName(new ResourceLocation(ThaumicAugmentationAPI.MODID, "morphic_tool_unbinding")));
+        event.getRegistry().register(new PrimalCutterAbilityRecipe().setRegistryName(new ResourceLocation(ThaumicAugmentationAPI.MODID, "primal_cutter_ability")));
     }
 
     @SubscribeEvent

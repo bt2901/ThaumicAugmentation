@@ -48,8 +48,10 @@ import net.minecraft.scoreboard.Team;
 import net.minecraft.util.DamageSource;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import net.minecraftforge.common.capabilities.Capability;
+import thaumcraft.api.items.ItemsTC;
 import thaumcraft.common.lib.SoundsTC;
 import thecodex6824.thaumicaugmentation.ThaumicAugmentation;
 import thecodex6824.thaumicaugmentation.api.TAItems;
@@ -70,9 +72,10 @@ public class EntityAutocaster extends EntityAutocasterBase implements IEntityOwn
     protected boolean teamCheck(EntityLivingBase target) {
         Team myTeam = getTeam();
         Team theirTeam = target.getTeam();
-        if (myTeam != null && myTeam == theirTeam && !getTargetFriendly())
+        boolean onSameTeam = myTeam != null && myTeam == theirTeam;
+        if (onSameTeam && !getTargetFriendly())
             return false;
-        else if (myTeam != null && myTeam != theirTeam && getTargetFriendly())
+        else if (myTeam != null && !onSameTeam && getTargetFriendly())
             return false;
         if (target.equals(getOwner()) && !getTargetFriendly())
             return false;
@@ -80,7 +83,7 @@ public class EntityAutocaster extends EntityAutocasterBase implements IEntityOwn
             IEntityOwnable ownable = (IEntityOwnable) target;
             if (ownable.getOwner() != null && ownable.getOwner().equals(getOwner()) && !getTargetFriendly())
                 return false;
-            else if (ownable.getOwner() != null && !ownable.getOwner().equals(getOwner()) && getTargetFriendly())
+            else if (ownable.getOwner() != null && (!onSameTeam && !ownable.getOwner().equals(getOwner())) && getTargetFriendly())
                 return false;
         }
         
@@ -133,7 +136,7 @@ public class EntityAutocaster extends EntityAutocasterBase implements IEntityOwn
         tasks.addTask(2, new EntityAIWatchClosest(this, EntityPlayer.class, 12.0F));
         tasks.addTask(3, new EntityAILookIdle(this));
         targetTasks.addTask(1, new EntityAIHurtByTarget(this, false, new Class[0]));
-        targeting = new EntityAINearestValidTarget(true, 5);
+        targeting = new EntityAINearestValidTarget(true, 2);
         targeting.addTargetSelector(this::mobTargetSelector);
         targetTasks.addTask(2, targeting);
     }
@@ -194,6 +197,27 @@ public class EntityAutocaster extends EntityAutocasterBase implements IEntityOwn
         dataManager.set(TARGETS, (byte) BitUtil.setOrClearBit(dataManager.get(TARGETS), 3, target));
         if (targeting != null)
             targeting.resetTask();
+    }
+    
+    public boolean getRedstoneControl() {
+        return BitUtil.isBitSet(dataManager.get(TARGETS), 4);
+    }
+    
+    public void setRedstoneControl(boolean redstone) {
+        dataManager.set(TARGETS, (byte) BitUtil.setOrClearBit(dataManager.get(TARGETS), 4, redstone));
+        if (targeting != null)
+            targeting.resetTask();
+    }
+    
+    @Override
+    public void onUpdate() {
+        super.onUpdate();
+        if (!world.isRemote && isAIDisabled()) {
+            targeting.resetTask();
+            BlockPos base = getPosition().offset(dataManager.get(FACING).getOpposite());
+            lookHelper.setLookPosition(base.getX() + 0.5, base.getY() + 0.5, base.getZ() + 0.5, getHorizontalFaceSpeed(), getVerticalFaceSpeed());
+            lookHelper.onUpdateLook();
+        }
     }
     
     @Override
@@ -258,8 +282,25 @@ public class EntityAutocaster extends EntityAutocasterBase implements IEntityOwn
     }
     
     @Override
+    public boolean isAIDisabled() {
+        return super.isAIDisabled() || (BitUtil.isBitSet(dataManager.get(TARGETS), 4) &&
+                world.getStrongPower(getPosition().offset(dataManager.get(FACING).getOpposite())) > 0);
+    }
+    
+    @Override
     protected boolean canDropLoot() {
         return false;
+    }
+    
+    @Override
+    protected void dropItemFromPlacement() {
+        dropFocus();
+        entityDropItem(new ItemStack(TAItems.AUTOCASTER_PLACER), 0.5F);
+    }
+    
+    @Override
+    protected int getHealRate() {
+        return 100;
     }
     
     protected void dropFocus() {
@@ -270,8 +311,12 @@ public class EntityAutocaster extends EntityAutocasterBase implements IEntityOwn
     @Override
     public void onDeath(DamageSource cause) {
         super.onDeath(cause);
-        if (!world.isRemote)
+        if (!world.isRemote) {
             dropFocus();
+            entityDropItem(new ItemStack(ItemsTC.mechanismSimple), 0.5F);
+            entityDropItem(new ItemStack(ItemsTC.morphicResonator), 0.5F);
+            entityDropItem(new ItemStack(ItemsTC.mind, 1, 1), 0.5F);
+        }
     }
     
     @Override
@@ -283,6 +328,8 @@ public class EntityAutocaster extends EntityAutocasterBase implements IEntityOwn
         compound.setInteger("dir", dataManager.get(FACING).getIndex());
         compound.setInteger("cooldown", cooldown);
         compound.setByte("targets", dataManager.get(TARGETS));
+        
+        compound.setBoolean("NoAI", super.isAIDisabled());
     }
     
     @Override
@@ -303,7 +350,9 @@ public class EntityAutocaster extends EntityAutocasterBase implements IEntityOwn
     
     @Override
     public boolean canAttackClass(Class<? extends EntityLivingBase> cls) {
-        if (getTargetAnimals() && IAnimals.class.isAssignableFrom(cls) && !IMob.class.isAssignableFrom(cls))
+        if (BitUtil.isBitSet(dataManager.get(TARGETS), 4) && world.isBlockPowered(getPosition().offset(dataManager.get(FACING).getOpposite())))
+            return false;
+        else if (getTargetAnimals() && IAnimals.class.isAssignableFrom(cls) && !IMob.class.isAssignableFrom(cls))
             return true;
         else if (getTargetMobs() && IMob.class.isAssignableFrom(cls))
             return true;

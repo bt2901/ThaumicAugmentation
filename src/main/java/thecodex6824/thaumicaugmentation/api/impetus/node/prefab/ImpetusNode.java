@@ -226,7 +226,12 @@ public class ImpetusNode implements IImpetusNode, INBTSerializable<NBTTagCompoun
     }
     
     @Override
-    public boolean shouldDrawBeamTo(IImpetusNode other) {
+    public boolean shouldPhysicalBeamLinkTo(IImpetusNode other) {
+        return true;
+    }
+    
+    @Override
+    public boolean shouldEnforceBeamLimitsWith(IImpetusNode other) {
         return true;
     }
     

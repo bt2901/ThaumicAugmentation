@@ -146,8 +146,9 @@ public class ItemRiftEnergyCasterAugment extends ItemTABase {
             public void appendAdditionalAugmentTooltip(List<String> tooltip) {
                 IImpetusStorage energy = stack.getCapability(CapabilityImpetusStorage.IMPETUS_STORAGE, null);
                 if (energy != null) {
-                    tooltip.add(new TextComponentTranslation("thaumicaugmentation.text.stored_energy", new TextComponentTranslation(
-                            ImpetusAPI.getEnergyAmountDescriptor(energy))).getFormattedText());
+                    tooltip.add(new TextComponentTranslation("thaumicaugmentation.text.stored_energy",
+                            ImpetusAPI.getSuggestedChatColorForDescriptor(energy) + new TextComponentTranslation(
+                            ImpetusAPI.getEnergyAmountDescriptor(energy)).getFormattedText()).getFormattedText());
                 }
             }
             
@@ -162,7 +163,7 @@ public class ItemRiftEnergyCasterAugment extends ItemTABase {
     public NBTTagCompound getNBTShareTag(ItemStack stack) {
         NBTTagCompound tag = new NBTTagCompound();
         if (stack.hasTagCompound())
-            tag.setTag("item", stack.getTagCompound());
+            tag.setTag("item", stack.getTagCompound().copy());
         
         tag.setTag("cap", new NBTTagCompound());
         tag.getCompoundTag("cap").setTag("augment", ((Augment) stack.getCapability(CapabilityAugment.AUGMENT, null)).serializeNBT());
@@ -173,8 +174,15 @@ public class ItemRiftEnergyCasterAugment extends ItemTABase {
     @Override
     public void readNBTShareTag(ItemStack stack, @Nullable NBTTagCompound nbt) {
         if (nbt != null) {
+            ((Augment) stack.getCapability(CapabilityAugment.AUGMENT, null)).deserializeNBT(nbt.getCompoundTag("cap").getCompoundTag("augment"));
+            ((ImpetusStorage) stack.getCapability(CapabilityImpetusStorage.IMPETUS_STORAGE, null)).deserializeNBT(nbt.getCompoundTag("cap").getCompoundTag("energy"));
             if (nbt.hasKey("item", NBT.TAG_COMPOUND))
                 stack.setTagCompound(nbt.getCompoundTag("item"));
+            else if (FMLCommonHandler.instance().getEffectiveSide() == Side.SERVER) {
+                nbt.removeTag("cap");
+                if (!nbt.isEmpty())
+                    stack.setTagCompound(nbt);
+            }
             
             if (FMLCommonHandler.instance().getEffectiveSide() == Side.CLIENT && !ThaumicAugmentation.proxy.isSingleplayer()) {
                 if (!stack.hasTagCompound())
@@ -182,9 +190,6 @@ public class ItemRiftEnergyCasterAugment extends ItemTABase {
                 
                 stack.getTagCompound().setTag("cap", nbt.getCompoundTag("cap"));
             }
-            
-            ((Augment) stack.getCapability(CapabilityAugment.AUGMENT, null)).deserializeNBT(nbt.getCompoundTag("cap").getCompoundTag("augment"));
-            ((ImpetusStorage) stack.getCapability(CapabilityImpetusStorage.IMPETUS_STORAGE, null)).deserializeNBT(nbt.getCompoundTag("cap").getCompoundTag("energy"));
         }
     }
     
@@ -217,8 +222,9 @@ public class ItemRiftEnergyCasterAugment extends ItemTABase {
     public void addInformation(ItemStack stack, @Nullable World world, List<String> tooltip, ITooltipFlag flag) {
         IImpetusStorage energy = stack.getCapability(CapabilityImpetusStorage.IMPETUS_STORAGE, null);
         if (energy != null) {
-            tooltip.add(new TextComponentTranslation("thaumicaugmentation.text.stored_energy", new TextComponentTranslation(
-                    ImpetusAPI.getEnergyAmountDescriptor(energy))).getFormattedText());
+            tooltip.add(new TextComponentTranslation("thaumicaugmentation.text.stored_energy",
+                    ImpetusAPI.getSuggestedChatColorForDescriptor(energy) + new TextComponentTranslation(
+                    ImpetusAPI.getEnergyAmountDescriptor(energy)).getFormattedText()).getFormattedText());
         }
     }
     

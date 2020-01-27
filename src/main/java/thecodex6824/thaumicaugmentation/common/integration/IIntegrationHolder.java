@@ -28,4 +28,8 @@ public interface IIntegrationHolder {
     
     public void postInit();
     
+    public default boolean registerEventBus() {
+        return false;
+    }
+    
 }

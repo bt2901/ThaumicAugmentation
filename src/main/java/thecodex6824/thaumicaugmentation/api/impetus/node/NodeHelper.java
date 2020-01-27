@@ -24,9 +24,13 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
+import java.util.function.Consumer;
 
 import net.minecraft.block.state.IBlockState;
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
@@ -38,10 +42,13 @@ import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.Chunk.EnumCreateEntityType;
+import net.minecraftforge.common.DimensionManager;
+import thecodex6824.thaumicaugmentation.api.impetus.ImpetusAPI;
 import thecodex6824.thaumicaugmentation.api.internal.TAInternals;
 import thecodex6824.thaumicaugmentation.api.item.CapabilityImpetusLinker;
 import thecodex6824.thaumicaugmentation.api.item.IImpetusLinker;
 import thecodex6824.thaumicaugmentation.api.util.DimensionalBlockPos;
+import thecodex6824.thaumicaugmentation.api.util.RaytraceHelper;
 
 public final class NodeHelper {
 
@@ -118,7 +125,7 @@ public final class NodeHelper {
     
     public static ConsumeResult consumeImpetusFromConnectedProviders(long amount, IImpetusConsumer dest, boolean simulate) {
         if (amount <= 0)
-            return new ConsumeResult(0, Collections.emptyList());
+            return new ConsumeResult(0, Collections.emptyMap());
         
         ArrayList<IImpetusProvider> providers = new ArrayList<>(dest.getGraph().findDirectProviders(dest));
         if (!providers.isEmpty()) {
@@ -130,53 +137,61 @@ public final class NodeHelper {
             }
             
             ArrayList<Deque<IImpetusNode>> paths = new ArrayList<>(providers.size());
+            HashSet<IImpetusProvider> removedProviders = new HashSet<>();
             for (IImpetusProvider p : providers) {
                 Deque<IImpetusNode> path = dest.getGraph().findPath(p, dest);
                 if (path != null)
                     paths.add(path);
+                else {
+                    validateFullGraph(p.getGraph());
+                    removedProviders.add(p);
+                }
             }
             
-            long drawn = 0;
-            long step = amount / providers.size();
-            long remain = amount % providers.size();
-            ArrayList<Deque<IImpetusNode>> usedPaths = new ArrayList<>();
-            for (int i = 0; i < providers.size(); ++i) {
-                IImpetusProvider p = providers.get(i);
-                long actuallyDrawn = p.provide(Math.min(step + (remain > 0 ? 1 : 0), amount - drawn), true);
-                if (actuallyDrawn > 0) {
-                    Deque<IImpetusNode> nodes = paths.get(i);
-                    for (IImpetusNode n : nodes) {
-                        actuallyDrawn = n.onTransaction(dest, nodes, actuallyDrawn, simulate);
-                        if (actuallyDrawn <= 0)
-                            break;
-                    }
-                    
+            providers.removeAll(removedProviders);
+            if (providers.size() > 0) {
+                long drawn = 0;
+                long step = amount / providers.size();
+                long remain = amount % providers.size();
+                HashMap<Deque<IImpetusNode>, Long> usedPaths = new HashMap<>();
+                for (int i = 0; i < providers.size(); ++i) {
+                    IImpetusProvider p = providers.get(i);
+                    long actuallyDrawn = p.provide(Math.min(step + (remain > 0 ? 1 : 0), amount - drawn), true);
                     if (actuallyDrawn > 0) {
-                        actuallyDrawn = p.provide(actuallyDrawn, false);
-                        usedPaths.add(nodes);
-                        drawn += actuallyDrawn;
-                        if (actuallyDrawn < step && i < providers.size() - 1) {
+                        Deque<IImpetusNode> nodes = paths.get(i);
+                        for (IImpetusNode n : nodes) {
+                            actuallyDrawn = n.onTransaction(dest, nodes, actuallyDrawn, simulate);
+                            if (actuallyDrawn <= 0)
+                                break;
+                        }
+                        
+                        if (actuallyDrawn > 0) {
+                            actuallyDrawn = p.provide(actuallyDrawn, false);
+                            usedPaths.put(nodes, actuallyDrawn);
+                            drawn += actuallyDrawn;
+                            if (actuallyDrawn < step && i < providers.size() - 1) {
+                                step = (amount - drawn) / (providers.size() - (i + 1));
+                                remain = (amount - drawn) % (providers.size() - (i + 1));
+                            }
+                            else
+                                --remain;
+                        }
+                        else if (i < providers.size() - 1) {
                             step = (amount - drawn) / (providers.size() - (i + 1));
                             remain = (amount - drawn) % (providers.size() - (i + 1));
                         }
-                        else
-                            --remain;
                     }
                     else if (i < providers.size() - 1) {
                         step = (amount - drawn) / (providers.size() - (i + 1));
                         remain = (amount - drawn) % (providers.size() - (i + 1));
                     }
                 }
-                else if (i < providers.size() - 1) {
-                    step = (amount - drawn) / (providers.size() - (i + 1));
-                    remain = (amount - drawn) % (providers.size() - (i + 1));
-                }
+                
+                return new ConsumeResult(drawn, usedPaths);
             }
-            
-            return new ConsumeResult(drawn, usedPaths);
         }
         
-        return new ConsumeResult(0, Collections.emptyList());
+        return new ConsumeResult(0, Collections.emptyMap());
     }
     
     public static boolean nodesPassDefaultCollisionCheck(World sharedWorld, IImpetusNode node1, IImpetusNode node2) {
@@ -205,11 +220,47 @@ public final class NodeHelper {
         return clear;
     }
     
+    public static void validateFullGraph(IImpetusGraph graph) {
+        // check for nodes with invalid links
+        // i.e. an input with no corresponding output, or the other way around
+        HashSet<IImpetusNode> toRemove = new HashSet<>();
+        for (IImpetusNode node : graph.getNodes()) {
+            for (IImpetusNode input : node.getInputs()) {
+                if (!input.hasOutput(node))
+                    toRemove.add(input);
+            }
+            
+            for (IImpetusNode n : toRemove)
+                node.removeInput(n);
+            
+            toRemove.clear();
+            for (IImpetusNode output : node.getOutputs()) {
+                if (!output.hasInput(node))
+                    toRemove.add(output);
+            }
+            
+            for (IImpetusNode n : toRemove)
+                node.removeOutput(n);
+            
+            toRemove.clear();
+        }
+        
+        // clean up orphan nodes
+        for (IImpetusNode node : graph.getNodes()) {
+            if (node.getNumInputs() == 0 && node.getNumOutputs() == 0)
+                toRemove.add(node);
+        }
+        
+        for (IImpetusNode node : toRemove)
+            graph.removeNode(node);
+    }
+    
     public static void validateOutputs(World sharedWorld, IImpetusNode node) {
         HashSet<IImpetusNode> changed = new HashSet<>();
         for (IImpetusNode output : node.getOutputs()) {
             if (sharedWorld.provider.getDimension() == node.getLocation().getDimension() &&
-                    sharedWorld.provider.getDimension() == output.getLocation().getDimension()) {
+                    sharedWorld.provider.getDimension() == output.getLocation().getDimension() &&
+                    (node.shouldEnforceBeamLimitsWith(output) || output.shouldEnforceBeamLimitsWith(node))) {
                 
                 double dist = node.getLocation().getPos().distanceSq(output.getLocation().getPos());
                 if (dist > node.getMaxConnectDistance(output) * node.getMaxConnectDistance(output) ||
@@ -230,6 +281,30 @@ public final class NodeHelper {
                 TileEntity tile = sharedWorld.getTileEntity(n.getLocation().getPos());
                 if (tile != null)
                     tile.markDirty();
+            }
+        }
+    }
+    
+    public static void damageEntitiesFromTransaction(Deque<IImpetusNode> path, long energy) {
+        damageEntitiesFromTransaction(path, entity -> ImpetusAPI.causeImpetusDamage(null, entity, Math.max(energy / 10.0F, 1.0F)));
+    }
+    
+    public static void damageEntitiesFromTransaction(Deque<IImpetusNode> path, Consumer<Entity> damageFunc) {
+        if (path.size() >= 2) {
+            Iterator<IImpetusNode> iterator = path.iterator();
+            IImpetusNode first = iterator.next();
+            while (iterator.hasNext()) {
+                IImpetusNode second = iterator.next();
+                if (first.getLocation().getDimension() == second.getLocation().getDimension() && first.shouldPhysicalBeamLinkTo(second) &&
+                        second.shouldPhysicalBeamLinkTo(first)) {
+                    World world = DimensionManager.getWorld(first.getLocation().getDimension());
+                    if (world != null) {
+                        for (Entity e : RaytraceHelper.raytraceEntities(world, first.getBeamEndpoint(), second.getBeamEndpoint()))
+                            damageFunc.accept(e);
+                    }
+                }
+                
+                first = second;
             }
         }
     }

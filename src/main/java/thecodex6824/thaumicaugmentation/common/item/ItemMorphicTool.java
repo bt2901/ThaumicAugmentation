@@ -116,7 +116,7 @@ public class ItemMorphicTool extends ItemTABase implements IWarpingGear {
     public NBTTagCompound getNBTShareTag(ItemStack stack) {
         NBTTagCompound tag = new NBTTagCompound();
         if (stack.hasTagCompound())
-            tag.setTag("item", stack.getTagCompound());
+            tag.setTag("item", stack.getTagCompound().copy());
         
         tag.setTag("cap", stack.getCapability(CapabilityMorphicTool.MORPHIC_TOOL, null).serializeNBT());
         return tag;
@@ -125,8 +125,14 @@ public class ItemMorphicTool extends ItemTABase implements IWarpingGear {
     @Override
     public void readNBTShareTag(ItemStack stack, @Nullable NBTTagCompound nbt) {
         if (nbt != null) {
+            stack.getCapability(CapabilityMorphicTool.MORPHIC_TOOL, null).deserializeNBT(nbt.getCompoundTag("cap"));
             if (nbt.hasKey("item", NBT.TAG_COMPOUND))
                 stack.setTagCompound(nbt.getCompoundTag("item"));
+            else if (FMLCommonHandler.instance().getEffectiveSide() == Side.SERVER) {
+                nbt.removeTag("cap");
+                if (!nbt.isEmpty())
+                    stack.setTagCompound(nbt);
+            }
             
             if (FMLCommonHandler.instance().getEffectiveSide() == Side.CLIENT && !ThaumicAugmentation.proxy.isSingleplayer()) {
                 if (!stack.hasTagCompound())
@@ -134,8 +140,6 @@ public class ItemMorphicTool extends ItemTABase implements IWarpingGear {
                 
                 stack.getTagCompound().setTag("cap", nbt.getCompoundTag("cap"));
             }
-            
-            stack.getCapability(CapabilityMorphicTool.MORPHIC_TOOL, null).deserializeNBT(nbt.getCompoundTag("cap"));
         }
     }
     
@@ -409,7 +413,7 @@ public class ItemMorphicTool extends ItemTABase implements IWarpingGear {
             old.getCapability(CapabilityMorphicTool.MORPHIC_TOOL, null).setFunctionalStack(innerResult.getResult());
             ActionResult<ItemStack> result = new ActionResult<>(innerResult.getType(), old);
             setStackWithoutAnnoyingNoise(playerIn, handIn, old);
-            if (result.getType() == EnumActionResult.SUCCESS) {
+            if (result.getType() == EnumActionResult.SUCCESS && playerIn.getActiveHand() != null) {
                 playerIn.resetActiveHand();
                 playerIn.setActiveHand(playerIn.getActiveHand());
             }

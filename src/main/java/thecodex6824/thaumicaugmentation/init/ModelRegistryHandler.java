@@ -21,6 +21,7 @@
 package thecodex6824.thaumicaugmentation.init;
 
 import net.minecraft.block.Block;
+import net.minecraft.block.BlockSlab;
 import net.minecraft.client.renderer.block.statemap.StateMap;
 import net.minecraft.item.Item;
 import net.minecraftforge.client.event.ModelRegistryEvent;
@@ -35,6 +36,7 @@ import thecodex6824.thaumicaugmentation.api.ThaumicAugmentationAPI;
 import thecodex6824.thaumicaugmentation.api.block.property.ILightSourceBlock;
 import thecodex6824.thaumicaugmentation.api.block.property.ITASlabType;
 import thecodex6824.thaumicaugmentation.api.block.property.ITAStoneType;
+import thecodex6824.thaumicaugmentation.client.renderer.AugmentRenderer;
 import thecodex6824.thaumicaugmentation.common.util.IModelProvider;
 
 @EventBusSubscriber(modid = ThaumicAugmentationAPI.MODID, value = Side.CLIENT)
@@ -50,7 +52,7 @@ public final class ModelRegistryHandler {
         ModelLoader.setCustomStateMapper(TABlocks.TEMPORARY_LIGHT, new StateMap.Builder().ignore(ILightSourceBlock.LIGHT_LEVEL).build());
         ModelLoader.setCustomStateMapper(TABlocks.STONE, new StateMap.Builder().withName(ITAStoneType.STONE_TYPE).build());
         ModelLoader.setCustomStateMapper(TABlocks.SLAB, new StateMap.Builder().withName(ITASlabType.SLAB_TYPE).ignore(ITASlabType.DOUBLE).withSuffix("_slab").build());
-        ModelLoader.setCustomStateMapper(TABlocks.SLAB_DOUBLE, new StateMap.Builder().withName(ITASlabType.SLAB_TYPE).ignore(ITASlabType.DOUBLE).withSuffix("_slab_double").build());
+        ModelLoader.setCustomStateMapper(TABlocks.SLAB_DOUBLE, new StateMap.Builder().withName(ITASlabType.SLAB_TYPE).ignore(ITASlabType.DOUBLE).ignore(BlockSlab.HALF).withSuffix("_slab_double").build());
         
         for (Block b : TABlocks.getAllBlocks()) {
             if (b instanceof IModelProvider<?>)
@@ -61,6 +63,8 @@ public final class ModelRegistryHandler {
             if (item instanceof IModelProvider<?>)
                 ((IModelProvider<?>) item).registerModels();
         }
+        
+        AugmentRenderer.loadModels();
     }
 
 }

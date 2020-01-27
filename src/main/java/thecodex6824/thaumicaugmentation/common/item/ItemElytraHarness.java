@@ -31,6 +31,7 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraftforge.common.capabilities.ICapabilityProvider;
 import net.minecraftforge.common.util.Constants.NBT;
 import net.minecraftforge.fml.common.FMLCommonHandler;
+import net.minecraftforge.fml.common.Optional;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.oredict.OreDictionary;
 import thaumcraft.api.items.IRechargable;
@@ -44,10 +45,13 @@ import thecodex6824.thaumicaugmentation.api.augment.IAugment;
 import thecodex6824.thaumicaugmentation.api.augment.builder.IElytraHarnessAugment;
 import thecodex6824.thaumicaugmentation.common.capability.CapabilityProviderHarness;
 import thecodex6824.thaumicaugmentation.common.event.AugmentEventHandler;
+import thecodex6824.thaumicaugmentation.common.integration.IntegrationHandler;
 import thecodex6824.thaumicaugmentation.common.item.prefab.ItemTABase;
 import thecodex6824.thaumicaugmentation.common.item.trait.IElytraCompat;
+import vazkii.botania.api.item.IPhantomInkable;
 
-public class ItemElytraHarness extends ItemTABase implements IElytraCompat, IRechargable {
+@Optional.Interface(iface = "vazkii.botania.api.item.IPhantomInkable", modid = IntegrationHandler.BOTANIA_MOD_ID)
+public class ItemElytraHarness extends ItemTABase implements IElytraCompat, IRechargable, IPhantomInkable {
 
     protected static final int VIS_MAX = 50;
     
@@ -96,6 +100,7 @@ public class ItemElytraHarness extends ItemTABase implements IElytraCompat, IRec
             @Override
             public void onEquipped(ItemStack itemstack, EntityLivingBase player) {
                 AugmentEventHandler.onEquipmentChange(player);
+                sync = true;
             }
             
             @Override
@@ -106,11 +111,11 @@ public class ItemElytraHarness extends ItemTABase implements IElytraCompat, IRec
             @Override
             public void onWornTick(ItemStack stack, EntityLivingBase entity) {
                 if (!entity.world.isRemote) {
-                    if ((entity.getTicksElytraFlying() + 1) % 20 == 0) {
+                    if (!(entity instanceof EntityPlayer) || (!((EntityPlayer) entity).isCreative()) &&
+                            (entity.ticksElytraFlying + 1) % 20 == 0) {
                         if (RechargeHelper.getCharge(stack) > 0)
                             RechargeHelper.consumeCharge(stack, entity, 1);
                         else if (stack.getItemDamage() < stack.getMaxDamage() - 1) {
-                            // don't damage the stack in creative mode
                             stack.damageItem(1, entity);
                             sync = true;
                         }
@@ -165,10 +170,28 @@ public class ItemElytraHarness extends ItemTABase implements IElytraCompat, IRec
     }
     
     @Override
+    @Optional.Method(modid = IntegrationHandler.BOTANIA_MOD_ID)
+    public boolean hasPhantomInk(ItemStack stack) {
+        if (stack.hasTagCompound())
+            return stack.getTagCompound().getBoolean("phantomInk");
+        
+        return false;
+    }
+    
+    @Override
+    @Optional.Method(modid = IntegrationHandler.BOTANIA_MOD_ID)
+    public void setPhantomInk(ItemStack stack, boolean ink) {
+        if (!stack.hasTagCompound())
+            stack.setTagCompound(new NBTTagCompound());
+        
+        stack.getTagCompound().setBoolean("phantomInk", ink);
+    }
+    
+    @Override
     public NBTTagCompound getNBTShareTag(ItemStack stack) {
         NBTTagCompound tag = new NBTTagCompound();
         if (stack.hasTagCompound())
-            tag.setTag("item", stack.getTagCompound());
+            tag.setTag("item", stack.getTagCompound().copy());
         
         tag.setTag("cap", ((AugmentableItem) stack.getCapability(CapabilityAugmentableItem.AUGMENTABLE_ITEM, null)).serializeNBT());
         return tag;
@@ -177,8 +200,14 @@ public class ItemElytraHarness extends ItemTABase implements IElytraCompat, IRec
     @Override
     public void readNBTShareTag(ItemStack stack, @Nullable NBTTagCompound nbt) {
         if (nbt != null) {
+            ((AugmentableItem) stack.getCapability(CapabilityAugmentableItem.AUGMENTABLE_ITEM, null)).deserializeNBT(nbt.getCompoundTag("cap"));
             if (nbt.hasKey("item", NBT.TAG_COMPOUND))
                 stack.setTagCompound(nbt.getCompoundTag("item"));
+            else if (FMLCommonHandler.instance().getEffectiveSide() == Side.SERVER) {
+                nbt.removeTag("cap");
+                if (!nbt.isEmpty())
+                    stack.setTagCompound(nbt);
+            }
             
             if (FMLCommonHandler.instance().getEffectiveSide() == Side.CLIENT && !ThaumicAugmentation.proxy.isSingleplayer()) {
                 if (!stack.hasTagCompound())
@@ -186,8 +215,6 @@ public class ItemElytraHarness extends ItemTABase implements IElytraCompat, IRec
                 
                 stack.getTagCompound().setTag("cap", nbt.getCompoundTag("cap"));
             }
-            
-            ((AugmentableItem) stack.getCapability(CapabilityAugmentableItem.AUGMENTABLE_ITEM, null)).deserializeNBT(nbt.getCompoundTag("cap"));
         }
     }
     

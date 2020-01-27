@@ -27,6 +27,7 @@ import java.util.UUID;
 import javax.annotation.Nullable;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.math.DoubleMath;
 
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.Entity;
@@ -60,8 +61,9 @@ import thecodex6824.thaumicaugmentation.api.block.property.IDirectionalBlock;
 import thecodex6824.thaumicaugmentation.api.block.property.IEnabledBlock;
 import thecodex6824.thaumicaugmentation.api.util.RiftHelper;
 import thecodex6824.thaumicaugmentation.common.tile.trait.IAnimatedTile;
+import thecodex6824.thaumicaugmentation.common.tile.trait.IBreakCallback;
 
-public class TileStabilityFieldGenerator extends TileEntity implements ITickable, IAnimatedTile {
+public class TileStabilityFieldGenerator extends TileEntity implements ITickable, IBreakCallback, IAnimatedTile {
 
     protected static class CustomEnergyStorage extends EnergyStorage {
         
@@ -75,9 +77,12 @@ public class TileStabilityFieldGenerator extends TileEntity implements ITickable
         
     }
     
+    protected static final float MAX_STABILITY = 4.0F;
+    
     protected UUID serverLoadedID;
     protected WeakReference<EntityFluxRift> targetedRift;
     protected CustomEnergyStorage energy;
+    protected float maxStabilityPerOperation;
     protected int ticks;
     
     protected int clientLoadedID;
@@ -94,6 +99,7 @@ public class TileStabilityFieldGenerator extends TileEntity implements ITickable
         actionTime = new VariableValue(-1.0F);
         asm = ThaumicAugmentation.proxy.loadASM(new ResourceLocation(ThaumicAugmentationAPI.MODID, "asms/block/stability_field_generator.json"),
                 ImmutableMap.of("cycle_length", cycleLength, "act_time", actionTime));
+        maxStabilityPerOperation = MAX_STABILITY;
     }
     
     protected double getDistForFace(EnumFacing face, Entity entity) {
@@ -114,7 +120,7 @@ public class TileStabilityFieldGenerator extends TileEntity implements ITickable
         BlockPos pos1 = pos.offset(face).add(1.0 - face.getXOffset(), 1.0 - face.getYOffset(), 1.0 - face.getZOffset());
         BlockPos pos2 = pos.offset(face, 8).add(1.0 + face.getXOffset(), 1.0 + face.getYOffset(), 1.0 + face.getZOffset());
         List<EntityFluxRift> rifts = world.getEntitiesWithinAABB(EntityFluxRift.class, 
-                new AxisAlignedBB(pos1.getX(), pos1.getY(), pos1.getZ(), pos2.getX() + 1, pos2.getY() + 1, pos2.getZ() + 1),
+                new AxisAlignedBB(pos1.getX() - 1, pos1.getY() - 1, pos1.getZ() - 1, pos2.getX() + 2, pos2.getY() + 2, pos2.getZ() + 2),
                 rift -> rift != null && !rift.getCollapse());
         if (!rifts.isEmpty()) {
             rifts.sort((rift1, rift2) -> Double.compare(getDistForFace(face, rift1), getDistForFace(face, rift2)));
@@ -158,9 +164,9 @@ public class TileStabilityFieldGenerator extends TileEntity implements ITickable
         if (!world.isRemote && ticks++ % 5 == 0) {
             IBlockState state = world.getBlockState(pos);
             if (state.getValue(IEnabledBlock.ENABLED)) {
-                int result = energy.extractEnergy(60, true);
-                if (result == 60) {
-                    energy.extractEnergy(60, false);
+                int result = energy.extractEnergy(5, true);
+                if (result == 5) {
+                    energy.extractEnergy(5, false);
                     EntityFluxRift rift = targetedRift.get();
                     if (rift == null || rift.isDead) {
                         if (serverLoadedID != null)
@@ -188,21 +194,32 @@ public class TileStabilityFieldGenerator extends TileEntity implements ITickable
                             world.notifyBlockUpdate(pos, world.getBlockState(pos), world.getBlockState(pos), 1);
                             markDirty();
                         }
-                        else if (rift.getRiftStability() < 100.0F) {
-                            float stab = Math.min(100.0F - rift.getRiftStability(), Math.min(energy.getEnergyStored() / 100.0F, 150));
-                            int cost = (int) (stab * 100);
-                            if (cost > 0 && energy.extractEnergy(cost, true) == cost) {
-                                energy.extractEnergy(cost, false);
-                                rift.setRiftStability(rift.getRiftStability() + stab);
-                                world.addBlockEvent(pos, getBlockType(), 1, 0);
-                            }
+                        else if (rift.getRiftStability() < 100.0F && energy.extractEnergy(20, true) == 20) {
+                            energy.extractEnergy(20, false);
+                            rift.setRiftStability(rift.getRiftStability() + maxStabilityPerOperation);
+                            world.addBlockEvent(pos, getBlockType(), 1, 0);
+                        }
+                        
+                        float old = maxStabilityPerOperation;
+                        maxStabilityPerOperation = Math.max(maxStabilityPerOperation * 0.95F, 0.05F);
+                        if (!DoubleMath.fuzzyEquals(old, maxStabilityPerOperation, 0.00001F)) {
+                            markDirty();
+                            world.addBlockEvent(pos, getBlockType(), 2, (int) (maxStabilityPerOperation * 10000.0F));
                         }
                     }
                 }
                 else if (targetedRift.get() != null) {
                     targetedRift.clear();
-                    world.notifyBlockUpdate(pos, world.getBlockState(pos), world.getBlockState(pos), 1);
                     markDirty();
+                    world.notifyBlockUpdate(pos, world.getBlockState(pos), world.getBlockState(pos), 1);
+                }
+            }
+            else {
+                float old = maxStabilityPerOperation;
+                maxStabilityPerOperation = Math.min(Math.max(0.05F, maxStabilityPerOperation * 1.025F), MAX_STABILITY);
+                if (!DoubleMath.fuzzyEquals(old, maxStabilityPerOperation, 0.00001F)) {
+                    markDirty();
+                    world.addBlockEvent(pos, getBlockType(), 2, (int) (maxStabilityPerOperation * 10000.0F));
                 }
             }
         }
@@ -210,9 +227,12 @@ public class TileStabilityFieldGenerator extends TileEntity implements ITickable
             boolean on = world.getBlockState(pos).getValue(IEnabledBlock.ENABLED);
             if (on != lastEnabledState) {
                 lastEnabledState = on;
-                // TODO put fancy latch animation here
-                
                 updateBeam();
+            }
+            
+            if (world.rand.nextFloat() > maxStabilityPerOperation / MAX_STABILITY) {
+                ThaumicAugmentation.proxy.getRenderHelper().renderSpark(world, pos.getX() + world.rand.nextFloat(),
+                        pos.getY() + world.rand.nextFloat(), pos.getZ() + world.rand.nextFloat(), 5.0F, 0xAA0000, false);
             }
             
             EntityFluxRift rift = targetedRift.get();
@@ -228,42 +248,46 @@ public class TileStabilityFieldGenerator extends TileEntity implements ITickable
     
     protected void updateBeam() {
         EntityFluxRift rift = targetedRift.get();
-        if (rift != null && lastEnabledState) {
+        if (rift != null && !rift.isDead && lastEnabledState) {
             Vec3d dest = RiftHelper.getRiftCenter(rift).add(rift.posX, rift.posY, rift.posZ);
             EnumFacing face = world.getBlockState(pos).getValue(IDirectionalBlock.DIRECTION);
             double offsetX = 0.0, offsetY = 0.0, offsetZ = 0.0;
             switch (face.getAxis()) {
                 case X: {
-                    offsetX = face.getXOffset() * 0.5;
+                    offsetX = face.getXOffset() > 0 ? 0.8125 : 0.1875;
                     offsetY = 0.5;
                     offsetZ = 0.5;
                     break;
                 }
                 case Y: {
                     offsetX = 0.5;
-                    offsetY = face.getYOffset() * 0.5;
+                    offsetY = face.getYOffset() > 0 ? 0.8125 : 0.1875;
                     offsetZ = 0.5;
                     break;
                 }
                 case Z: {
                     offsetX = 0.5;
                     offsetY = 0.5;
-                    offsetZ = face.getZOffset() * 0.5;
+                    offsetZ = face.getZOffset() > 0 ? 0.8125 : 0.1875;
                     break;
                 }
                 default: break;
             }
             
             if (beam == null || !((FXBeamBore) beam).isAlive()) {
+                float mod = maxStabilityPerOperation / 10000.0F;
+                int color = ((int) (0xFF * (mod / MAX_STABILITY)) << 16) | ((int) (0xBF * (mod / MAX_STABILITY)) << 8);
                 beam = FXDispatcher.INSTANCE.beamBore(pos.getX() + offsetX, pos.getY() + offsetY, pos.getZ() + offsetZ,
-                        dest.x, dest.y, dest.z, 1, 0xFFBF00,
+                        dest.x, dest.y, dest.z, 1, color,
                         false, 0.05F, beam, 0);
                 ((FXBeamBore) beam).setMaxAge(Integer.MAX_VALUE);
                 actionTime.setValue(Animation.getWorldTime(world, Animation.getPartialTickTime()));
                 asm.transition("opening");
             }
+            
+            ((FXBeamBore) beam).setRBGColorF(maxStabilityPerOperation / MAX_STABILITY, 0.75F * (maxStabilityPerOperation / MAX_STABILITY), 0);
         }
-        else if ((rift == null || !lastEnabledState) && beam != null) {
+        else if ((rift == null || rift.isDead || !lastEnabledState) && beam != null) {
             if (((FXBeamBore) beam).isAlive()) {
                 actionTime.setValue(Animation.getWorldTime(world, Animation.getPartialTickTime()));
                 asm.transition("closing");
@@ -275,12 +299,28 @@ public class TileStabilityFieldGenerator extends TileEntity implements ITickable
     
     @Override
     public boolean receiveClientEvent(int id, int type) {
-        if (targetedRift.get() != null) {
+        if (id == 1) {
+            EntityFluxRift rift = targetedRift.get();
+            if (rift != null && !rift.isDead) {
+                updateBeam();
+                return true;
+            }
+            else
+                return false;
+        }
+        else if (id == 2) {
+            maxStabilityPerOperation = type / 10000.0F;
             updateBeam();
             return true;
         }
-        else
-            return false;
+        
+        return false;
+    }
+    
+    @Override
+    public void onBlockBroken() {
+        targetedRift = new WeakReference<>(null);
+        world.notifyBlockUpdate(pos, world.getBlockState(pos), world.getBlockState(pos), 1);
     }
     
     @Override
@@ -310,12 +350,14 @@ public class TileStabilityFieldGenerator extends TileEntity implements ITickable
         Entity e = targetedRift.get();
         tag.setInteger("riftID", e != null ? e.getEntityId() : -1);
         tag.setInteger("energy", energy.getEnergyStored());
+        tag.setFloat("stabRegen", maxStabilityPerOperation);
         return tag;
     }
     
     @Override
     public void handleUpdateTag(NBTTagCompound tag) {
         super.handleUpdateTag(tag);
+        maxStabilityPerOperation = tag.getFloat("stabRegen");
         clientLoadedID = tag.getInteger("riftID");
         if (clientLoadedID != -1)
             loadTargetFromID();
@@ -357,6 +399,7 @@ public class TileStabilityFieldGenerator extends TileEntity implements ITickable
             tag.setUniqueId("rift", rift.getUniqueID());
         
         tag.setInteger("energy", energy.getEnergyStored());
+        tag.setFloat("stabRegen", maxStabilityPerOperation);
         return super.writeToNBT(tag);
     }
     
@@ -365,6 +408,7 @@ public class TileStabilityFieldGenerator extends TileEntity implements ITickable
         super.readFromNBT(nbt);
         serverLoadedID = nbt.getUniqueId("rift");
         energy.setEnergy(nbt.getInteger("energy"));
+        maxStabilityPerOperation = nbt.getFloat("stabRegen");
     }
     
     @Override

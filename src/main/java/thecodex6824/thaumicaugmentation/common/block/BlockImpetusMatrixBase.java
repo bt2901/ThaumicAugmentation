@@ -28,6 +28,7 @@ import net.minecraft.block.state.BlockStateContainer;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
+import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.BlockRenderLayer;
 import net.minecraft.util.EnumBlockRenderType;
 import net.minecraft.util.EnumFacing;
@@ -44,6 +45,7 @@ import thecodex6824.thaumicaugmentation.api.block.property.IImpetusCellInfo;
 import thecodex6824.thaumicaugmentation.api.block.property.IVerticallyDirectionalBlock;
 import thecodex6824.thaumicaugmentation.common.block.prefab.BlockTABase;
 import thecodex6824.thaumicaugmentation.common.block.trait.IItemBlockProvider;
+import thecodex6824.thaumicaugmentation.common.tile.TileImpetusMatrix;
 
 public class BlockImpetusMatrixBase extends BlockTABase implements IImpetusCellInfo, IItemBlockProvider {
 
@@ -77,6 +79,27 @@ public class BlockImpetusMatrixBase extends BlockTABase implements IImpetusCellI
     }
     
     @Override
+    public boolean hasComparatorInputOverride(IBlockState state) {
+        return true;
+    }
+    
+    @Override
+    public int getComparatorInputOverride(IBlockState blockState, World world, BlockPos pos) {
+        if (world.getBlockState(pos.down()).getBlock() == TABlocks.IMPETUS_MATRIX) {
+            TileEntity tile = world.getTileEntity(pos.down());
+            if (tile instanceof TileImpetusMatrix)
+                return ((TileImpetusMatrix) tile).getComparatorOutput();
+        }
+        else if (world.getBlockState(pos.up()).getBlock() == TABlocks.IMPETUS_MATRIX) {
+            TileEntity tile = world.getTileEntity(pos.up());
+            if (tile instanceof TileImpetusMatrix)
+                return ((TileImpetusMatrix) tile).getComparatorOutput();
+        }
+        
+        return 0;
+    }
+    
+    @Override
     public boolean onBlockActivated(World world, BlockPos pos, IBlockState state, EntityPlayer player,
             EnumHand hand, EnumFacing facing, float hitX, float hitY, float hitZ) {
         
@@ -93,9 +116,22 @@ public class BlockImpetusMatrixBase extends BlockTABase implements IImpetusCellI
                     if (!player.isCreative())
                         stack.shrink(1);
                     
-                    world.setBlockState(pos, state.withProperty(IImpetusCellInfo.CELL_INFO, IImpetusCellInfo.setCellPresent(value, facing)));
+                    world.setBlockState(pos, state.withProperty(IImpetusCellInfo.CELL_INFO, IImpetusCellInfo.setCellPresent(value, facing, true)));
                     return true;
                 }
+            }
+            else if (IImpetusCellInfo.isCellPresent(state.getValue(IImpetusCellInfo.CELL_INFO), facing) && 
+                    hand != null && (player.getHeldItem(hand).isEmpty() || ItemStack.areItemsEqual(player.getHeldItem(hand), new ItemStack(TAItems.MATERIAL, 1, 3)))) {
+                
+                world.setBlockState(pos, state.withProperty(IImpetusCellInfo.CELL_INFO, IImpetusCellInfo.setCellPresent(value, facing, false)));
+                if (player.getHeldItem(hand).isEmpty())
+                    player.setHeldItem(hand, new ItemStack(TAItems.MATERIAL, 1, 3));
+                else if (player.getHeldItem(hand).getCount() < player.getHeldItem(hand).getMaxStackSize())
+                    player.getHeldItem(hand).grow(1);
+                else
+                    world.spawnEntity(TAItems.MATERIAL.createEntity(world, player, new ItemStack(TAItems.MATERIAL, 1, 3)));
+                
+                return true;
             }
         }
         
@@ -125,10 +161,6 @@ public class BlockImpetusMatrixBase extends BlockTABase implements IImpetusCellI
     @Override
     public void breakBlock(World world, BlockPos pos, IBlockState state) {
         
-        //int cells = IImpetusCellInfo.getNumberOfCells(state.getValue(IImpetusCellInfo.CELL_INFO));
-        //if (cells > 0)
-        //    AuraHelper.polluteAura(world, pos, cells * 10, true);
-            
         if (world.getBlockState(pos.down()).getBlock() == TABlocks.IMPETUS_MATRIX) {
             world.setBlockState(pos.down(), BlocksTC.infusionMatrix.getDefaultState());
             if (world.getBlockState(pos.down(2)).getBlock() == this)
@@ -169,7 +201,12 @@ public class BlockImpetusMatrixBase extends BlockTABase implements IImpetusCellI
     }
 
     @Override
-    public BlockFaceShape getBlockFaceShape(IBlockAccess worldIn, IBlockState state, BlockPos pos, EnumFacing face) {
+    public BlockFaceShape getBlockFaceShape(IBlockAccess world, IBlockState state, BlockPos pos, EnumFacing face) {
+        if (face == EnumFacing.UP && world.getBlockState(pos.down()).getBlock() == TABlocks.IMPETUS_MATRIX)
+            return BlockFaceShape.SOLID;
+        else if (face == EnumFacing.DOWN && world.getBlockState(pos.up()).getBlock() == TABlocks.IMPETUS_MATRIX)
+            return BlockFaceShape.SOLID;
+        
         return BlockFaceShape.UNDEFINED;
     }
 

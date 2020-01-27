@@ -33,8 +33,12 @@ import org.objectweb.asm.tree.VarInsnNode;
 
 /**
  * Patches the ModelCustomArmor class to call the super method in setRotationAngles to fix
- * a whole lot of issues with other mods that hook into ModelBiped. For some reason, instead of calling the
- * super method, Azanor copied + pasted the code...
+ * a whole lot of issues with other mods that hook into ModelBiped. Azanor apparently wanted to change
+ * some rotation points on the model, which caused the copy+pasted code to be there instead of a super call.
+ * Since other mods just ASM into ModelBiped and not TC's class, calling the super method is important here.
+ * This is done through adding the super call here, and in another transformer injecting a static method
+ * call to update rotation points. Sadly, just setting rotation points at the end or after it returns is too late
+ * for some mods that need accurate rotation points.
  */
 public class TransformerBipedRotationCustomTCArmor extends Transformer {
 
@@ -58,6 +62,7 @@ public class TransformerBipedRotationCustomTCArmor extends Transformer {
                     Type.getType("Lnet/minecraft/entity/Entity;"));
             MethodNode rot = TransformUtil.findMethod(classNode, rotationAngles, "(FFFFFFLnet/minecraft/entity/Entity;)V");
             
+            // since we are removing instructions, it's better to fail here than break everything later
             if (rot.instructions.size() != 1009 || rot.localVariables.size() != 15)
                 throw new TransformerException("setRotationAngles function is not the expected size, this transformer will almost certainly break it");
        
