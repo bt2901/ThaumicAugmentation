@@ -263,6 +263,8 @@ public class ChunkGeneratorEmptiness implements IChunkGenerator {
         for (int i = 0; i < chunk.getBiomeArray().length; ++i)
             chunk.getBiomeArray()[i] = (byte) Biome.getIdForBiome(biomes[i]);
         
+        ChunkPos chunkpos = new ChunkPos(x, z);
+		System.out.println("Generating chunk " + chunkpos);
 		PYRAMID_GEN.generate(world, x, z, primer);
         chunk.generateSkylightMap();
         return chunk;
@@ -286,13 +288,16 @@ public class ChunkGeneratorEmptiness implements IChunkGenerator {
         biome.decorate(world, rand, pos);
 
         rand.setSeed(12);
+		PYRAMID_GEN.generateStructure(world, rand, chunkpos);
         ForgeEventFactory.onChunkPopulate(false, this, world, rand, x, z, false);
-		PYRAMID_GEN.generateStructure(world, rand, chunkpos);		
         BlockFalling.fallInstantly = false;
     }
 
     @Override
     public boolean generateStructures(Chunk chunkIn, int x, int z) {
+		ChunkPos chunkpos = new ChunkPos(x, z);
+		System.out.println("generateStructure at chunk " + chunkpos);
+		
         return false;
     }
 

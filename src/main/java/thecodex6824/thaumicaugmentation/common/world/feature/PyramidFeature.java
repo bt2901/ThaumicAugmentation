@@ -13,8 +13,10 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 
 import javax.annotation.Nullable;
+import net.minecraft.util.math.ChunkPos;
 
 import java.util.Random;
+import it.unimi.dsi.fastutil.objects.ObjectIterator;
 
 import thecodex6824.thaumicaugmentation.common.world.WorldProviderEmptiness;
 
@@ -42,6 +44,23 @@ public class PyramidFeature extends MapGenStructure {
 		BlockPos ans = findNearestStructurePosBySpacing(worldIn, this, pos, averageSpacing, unknown, 10387313, true, 100, findUnexplored);
         return ans;
     }
+	/*
+	@Override
+	public synchronized boolean generateStructure(World world, Random rand, ChunkPos chunkpos) {
+		System.out.println("generateStructure at chunk " + chunkpos);
+        ObjectIterator objectiterator = this.structureMap.values().iterator();
+		
+		StructureStart structurestart = (StructureStart)objectiterator.next();
+        int i = (chunkpos.x << 4) + 8;
+        int j = (chunkpos.z << 4) + 8;
+
+		boolean flag = (structurestart.isSizeableStructure() && structurestart.isValidForPostProcess(chunkpos) && structurestart.getBoundingBox().intersectsWith(i, j, i + 15, j + 15));
+		System.out.println("check is " + flag);
+
+		return super.generateStructure(world, rand, chunkpos);
+	}
+	*/
+
 
 	@Override
 	protected StructureStart getStructureStart(int chunkX, int chunkZ) {
@@ -84,6 +103,7 @@ public class PyramidFeature extends MapGenStructure {
 
 		@SuppressWarnings({ "unchecked", "rawtypes" })
 		public Start(World world, Random rand, int chunkX, int chunkZ)  {
+			System.out.println("Creating a StructureStart at [" +  chunkX + ", " + chunkZ + "]");
 			int x = (chunkX * 16) + 8;
 			int z = (chunkZ * 16) + 8;
 			// int yBase = WorldProviderEmptiness().getAverageGroundLevel();

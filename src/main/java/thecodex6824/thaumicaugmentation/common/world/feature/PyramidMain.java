@@ -36,7 +36,7 @@ public class PyramidMain extends StructureComponent {
 
 	public static int floorThickness = 1;
     
-	public static int levelsTall = 7;
+	public static int levelsTall = 1;
 	
 	public int worldX; // set when we first copy the maze into the world
 	public int worldY;
@@ -162,9 +162,11 @@ public class PyramidMain extends StructureComponent {
                 int type = rooms[i * PyramidMap.ROOM_INFO_LEN + 2];
         
                 // add the room as a component
-                ComponentPyramidRoom room = makeRoom(random, type, dx, dz, l, levelBuilder);
+                /*
+				ComponentPyramidRoom room = makeRoom(random, type, dx, dz, l, levelBuilder);
                 list.add(room);
                 room.buildComponent(this, list, random);
+				*/
             }
 			levelBuilder.describe();
         }
@@ -192,10 +194,13 @@ public class PyramidMain extends StructureComponent {
                     room = makeRoom(random, PyramidMap.ENTRANCE, dx, dz, entrance_mode, levels.get(l));
                     //}
                 }
+				/*
                 if (room != null) {
                     list.add(room);
                     room.buildComponent(this, list, random);
                 }
+				*/
+				
             }
         }
         
