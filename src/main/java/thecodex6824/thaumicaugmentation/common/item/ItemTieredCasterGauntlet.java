@@ -30,8 +30,6 @@ import java.util.TreeMap;
 
 import javax.annotation.Nullable;
 
-import com.mojang.realmsclient.gui.ChatFormatting;
-
 import net.minecraft.block.BlockCauldron;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.util.ITooltipFlag;
@@ -548,8 +546,12 @@ public class ItemTieredCasterGauntlet extends ItemTABase implements IArchitect, 
                     stack.setTagCompound(nbt);
             }
             
-            if (FMLCommonHandler.instance().getEffectiveSide() == Side.CLIENT && !ThaumicAugmentation.proxy.isSingleplayer())
+            if (FMLCommonHandler.instance().getEffectiveSide() == Side.CLIENT && !ThaumicAugmentation.proxy.isSingleplayer()) {
+                if (!stack.hasTagCompound())
+                    stack.setTagCompound(new NBTTagCompound());
+                
                 stack.getTagCompound().setTag("cap", nbt.getCompoundTag("cap"));
+            }
         }
     }
     
@@ -585,7 +587,7 @@ public class ItemTieredCasterGauntlet extends ItemTABase implements IArchitect, 
         int color = getDyedColor(stack);
         if (color != getDefaultDyedColorForMeta(stack.getMetadata())) {
             if (flag.isAdvanced())
-                tooltip.add(new TextComponentTranslation("item.color", ChatFormatting.GRAY + String.format("#%06X", color)).getFormattedText());
+                tooltip.add(new TextComponentTranslation("item.color", TextFormatting.GRAY + String.format("#%06X", color)).getFormattedText());
             else
                 tooltip.add(TextFormatting.ITALIC + new TextComponentTranslation("item.dyed").getFormattedText());
         }
