@@ -136,6 +136,24 @@ public class ComponentPyramidRoom extends StructureComponent {
                 fillWithAir(world, sbb, roomWidth, 1, 1, roomWidth + PyramidMain.oddBias, roomHeight - 1, roomDepth - 1);
             //}
         }
+
+		// make a fancy ceiling
+		for (int i=0; i <= PyramidMain.floorThickness; ++i) {
+			int y = PyramidMain.height - PyramidMain.floorThickness + i;
+
+			// make a middle row out of different material
+			IBlockState outsideBlock = PyramidMaterials.wallBlockAlt;
+			if (i == 0 || i == PyramidMain.floorThickness) {
+				outsideBlock = PyramidMaterials.wallBlock;
+			}
+
+			IBlockState insideBlock = PyramidMaterials.headBlock;
+			if (type == PyramidMap.ROOM_VIRTUAL) {
+				insideBlock = PyramidMaterials.wallBlockAlt;
+			}
+			fillWithBlocks(world, sbb, 0, y, 0, roomWidth, y, roomDepth, insideBlock, outsideBlock, true);
+
+		}
         if (type == PyramidMap.ROOM_NO_CEILING_FANCY_ENTRANCE || type == PyramidMap.ROOM_NO_CEILING) {
             fillWithAir(world, sbb, 1, roomHeight, 1, roomWidth - 1, roomHeight, roomDepth - 1);
         }

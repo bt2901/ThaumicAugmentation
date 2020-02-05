@@ -64,6 +64,7 @@ public class PyramidMaterials {
     }
 
 	public static IBlockState wallBlock = BlocksTC.stoneAncientTile.getDefaultState();
+	public static final IBlockState wallBlockAlt = TABlocks.STONE.getDefaultState().withProperty(ITAStoneType.STONE_TYPE, ITAStoneType.StoneType.ANCIENT_BRICKS);
 	
 	public static IBlockState headBlock = BlocksTC.stoneAncientRock.getDefaultState();
 	

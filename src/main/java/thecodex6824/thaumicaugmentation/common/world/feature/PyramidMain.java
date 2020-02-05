@@ -30,17 +30,19 @@ public class PyramidMain extends StructureComponent {
 	public static int oddBias  = 3; // corridor thickness, default 3
 	public static int evenBias = 1; // wall thickness here.  NYI 
 	
-	public static int height = 4; // wall blocks tall
+	// public static int height = 4; // wa////ll blocks tall
+	public static int height = 6; // wall blocks tall
+	public static int floorThickness = 2;
 	public static int head = 0;   // blocks placed above the maze
 	public static int roots = 0;  // blocks placed under the maze (used for hedge mazes)
-
-	public static int floorThickness = 1;
     
 	public static int levelsTall = 5;
 	
 	public int worldX; // set when we first copy the maze into the world
 	public int worldY;
 	public int worldZ;
+
+	public long seed;
 			
 	protected int rawWidth;
 	protected int rawDepth;
@@ -63,6 +65,7 @@ public class PyramidMain extends StructureComponent {
         int centerRoomZ = cellsWidth/2;
 		this.width = cellsWidth;
 		this.depth = cellsDepth;
+		this.seed = world.getSeed();
 		
 		this.rawWidth = width * 2 + 1;
 		this.rawDepth = depth * 2 + 1;
@@ -73,8 +76,10 @@ public class PyramidMain extends StructureComponent {
 		this.boundingBox = new StructureBoundingBox(x-radius, y, z-radius, x + radius, y + height*(levelsTall+3), z + radius);
         int nrooms = 6;
         for (int i=0; i < levelsTall; ++i) {
-            nrooms = (i > 3)? 3 : 7;
-            mazes.add(new PyramidMap(cellsWidth - height*i/2, cellsDepth - height*i/2));
+			// TODO: clean up this
+            nrooms = 7 - i; // how many rooms on this level
+			int areaShrinkage = 2*i;
+            mazes.add(new PyramidMap(cellsWidth - areaShrinkage, cellsDepth - areaShrinkage));
             PyramidMap newMaze = mazes.get(i);
             // set the seed to a fixed value based on this maze's x and z
             setFixedMazeSeed(newMaze, i);
@@ -86,7 +91,7 @@ public class PyramidMain extends StructureComponent {
                 }
             } else {
                 for (int j = 0; j <= nrooms; ++j) {
-                    int prev_x = mazes.get(i-1).rcoords[j * 3];
+                    int prev_x = mazes.get(i-1).rcoords[j * 3 + 0];
                     int prev_z = mazes.get(i-1).rcoords[j * 3 + 1];
                     int prev_t = mazes.get(i-1).rcoords[j * 3 + 2];                
                     if (prev_x != 0 && prev_z != 0 && prev_t != 0) {
@@ -148,6 +153,7 @@ public class PyramidMain extends StructureComponent {
         int centerX = boundingBox.minX + ((boundingBox.maxX - boundingBox.minX) / 2);
         int centerZ = boundingBox.minZ + ((boundingBox.maxZ - boundingBox.minZ) / 2);
         for (int l=0; l < levelsTall; ++l) {
+			// TODO: clean up this
 			PyramidLevel levelBuilder = new PyramidLevel(random, 
                 centerX, boundingBox.minY + (height)*l, centerZ, l, mazes.get(l));
 			list.add(levelBuilder);
@@ -162,7 +168,7 @@ public class PyramidMain extends StructureComponent {
                 int type = rooms[i * PyramidMap.ROOM_INFO_LEN + 2];
         
                 // add the room as a component
-				ComponentPyramidRoom room = makeRoom(random, type, dx, dz, l, levelBuilder);
+				ComponentPyramidRoom room = makeRoom(type, dx, dz, l, levelBuilder);
                 list.add(room);
                 room.buildComponent(this, list, random);
             }
@@ -181,15 +187,15 @@ public class PyramidMain extends StructureComponent {
                 if (type == PyramidMap.ROOM_NO_CEILING_FANCY_ENTRANCE || type == PyramidMap.ROOM_NO_CEILING) {
                     float r = random.nextFloat();
                     if (r > 0.75) {
-                        room = makeRoom(random, PyramidMap.ROOM_VPR, dx, dz, l, levels.get(l));
+                        room = makeRoom(PyramidMap.ROOM_VPR, dx, dz, l, levels.get(l));
                     }
                     if (r <= 0.75) {
-                        room = makeRoom(random, PyramidMap.ROOM_GARDEN, dx, dz, l, levels.get(l));
+                        room = makeRoom(PyramidMap.ROOM_GARDEN, dx, dz, l, levels.get(l));
                     }
                 }
                 if (type == PyramidMap.ENTRANCE) {
                     // if (rand.nextFloat() > 0.33) {
-                    room = makeRoom(random, PyramidMap.ENTRANCE, dx, dz, entrance_mode, levels.get(l));
+                    room = makeRoom(PyramidMap.ENTRANCE, dx, dz, entrance_mode, levels.get(l));
                     //}
                 }
                 if (room != null) {
@@ -200,7 +206,9 @@ public class PyramidMain extends StructureComponent {
         }
         
 	}
-    protected ComponentPyramidRoom makeRoom(Random random, int type, int dx, int dz, int i, PyramidLevel levelBuilder) {
+    protected ComponentPyramidRoom makeRoom(int type, int dx, int dz, int i, PyramidLevel levelBuilder) {
+
+        Random random = new Random((i + 1) * this.seed + dx * 153 + dz * 615);
 
 		// TODO: without asymmetric -3 the 1.12 version places rooms wrong. Can anyone explain why?
 		int worldX = levelBuilder.getBoundingBox().minX + dx * (evenBias + oddBias) - 3;
@@ -226,10 +234,13 @@ public class PyramidMain extends StructureComponent {
 	public boolean addComponentParts(World world, Random rand, StructureBoundingBox sbb) {
         int l = (this.boundingBox.maxX - this.boundingBox.minX) + 2; // TODO: why +2??
         int startH = -4;
-        int endH = (height)*(levelsTall + 2) + startH;
+        // int endH = (height)*(levelsTall + 2) + startH;
+		// debug: fill with outside walls only one level
+        int endH = 3 * height + startH;
         // if (UnravelingConfig.debug) {
         //     endH = 1;
         // }
+		
         for (int i=startH; i <= endH; ++i) {
             fillWithBlocks(world, sbb, i, i, i, l - i, i, l - i, 
                 PyramidMaterials.outerBlock, PyramidMaterials.outerBlock, false);

@@ -119,7 +119,8 @@ public class PyramidLevel extends StructureComponent {
         	
         
 		fillWithBlocks(world, sbb, 
-            1, PyramidMain.height, 1, getDiameter(), PyramidMain.height, getDiameter(), 
+            1, PyramidMain.height - PyramidMain.floorThickness, 1, 
+			getDiameter(), PyramidMain.height, getDiameter(), 
             PyramidMaterials.headBlock, PyramidMaterials.headBlock, false);
 
         copyToStructure(world, 1, 1, 1, this, sbb);
