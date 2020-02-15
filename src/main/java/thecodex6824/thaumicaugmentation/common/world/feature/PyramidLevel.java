@@ -142,6 +142,7 @@ public class PyramidLevel extends StructureComponent {
                 toPrint = (val >= 200) ? ("!" + (val % 200)) : toPrint;
                 toPrint = (val == PyramidMap.ROOM_VPR) ? " V" : toPrint;
                 toPrint = (val == PyramidMap.ROOM_GARDEN) ? " G" : toPrint;
+                toPrint = (val == PyramidMap.CORIDOR_BLOCKED) ? " X" : toPrint;
                 System.out.print("" + toPrint);
             }
             System.out.println(" ");
@@ -194,6 +195,13 @@ public class PyramidLevel extends StructureComponent {
 							}
 						}
 					}
+				}
+				if (getRaw(x, z) == PyramidMap.CORIDOR_BLOCKED) {
+					fillWithBlocks(world, sbb, 
+						mdx, 0, mdz, 
+						mdx + PyramidMain.evenBias, wallheight, mdz + PyramidMain.evenBias, 
+						PyramidMaterials.wallBlockAlt, PyramidMaterials.wallBlockAlt, false);
+					
 				}
                 
 

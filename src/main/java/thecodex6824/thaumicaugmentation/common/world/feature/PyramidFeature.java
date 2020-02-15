@@ -110,9 +110,16 @@ public class PyramidFeature extends MapGenStructure {
 			int yBase = 56;
 			int y = yBase - 3*PyramidMain.height/2; //1.5 stores under the ground level
 
-			StructureComponent firstComponent = new PyramidMain(world, rand, x, y, z);
-			components.add(firstComponent);
+			PyramidMain firstComponent = new PyramidMain(world, rand, x, y, z);
+			// this.components.addAll(list);
+			components.add((StructureComponent)firstComponent);
 			firstComponent.buildComponent(firstComponent, components, rand);
+			
+			List<PyramidMap> mazemap = firstComponent.getMazeMap();
+			
+			// add grid
+			// add rooms
+			// add templates
 
 			updateBoundingBox();
 		}		

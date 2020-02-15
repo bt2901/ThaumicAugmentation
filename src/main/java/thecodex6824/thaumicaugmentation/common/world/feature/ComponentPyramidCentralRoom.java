@@ -10,6 +10,8 @@ import net.minecraft.world.gen.structure.StructureComponent;
 import thecodex6824.thaumicaugmentation.api.TABlocks;
 import net.minecraft.world.gen.structure.template.TemplateManager;
 import net.minecraft.util.EnumFacing;
+import net.minecraft.util.Rotation;
+import net.minecraft.util.math.BlockPos;
 
 
 import net.minecraft.block.state.IBlockState;
@@ -17,6 +19,10 @@ import net.minecraft.block.Block;
 import net.minecraft.init.Blocks;
 
 import net.minecraft.nbt.NBTTagCompound;
+
+import net.minecraft.world.gen.structure.template.PlacementSettings;
+import net.minecraft.world.gen.structure.template.Template;
+
 
 import thaumcraft.common.config.ConfigBlocks;
 
@@ -147,14 +153,37 @@ public class ComponentPyramidCentralRoom extends ComponentPyramidRoom {
 	 * Initiates construction of the Structure Component picked, at the current Location of StructGen
 	 */
 	@Override
-	public void buildComponent(StructureComponent structurecomponent, List list, Random random) {}
+	public void buildComponent(StructureComponent structurecomponent, List list, Random random) {
+	}
 
 	@Override
 	public boolean addComponentParts(World world, Random rand, StructureBoundingBox sbb) {
         fillWithAir(world, sbb, 1, 0, 1, roomWidth - 1, roomHeight - 1, roomDepth - 1);
+		/*
         createPlatforms(world, sbb);
         createFourDoorways(world, sbb);
         makeStairs(world, sbb);
+		*/
+		TemplateManager templateManager = world.getSaveHandler().getStructureTemplateManager();
+		
+		BlockPos blockpos = new BlockPos(sbb.minX, sbb.minY + 1, sbb.minZ);
+		System.out.println("Trying to add template at " + blockpos);
+		Rotation rotation = Rotation.values()[0];
+		PyramidMain.RoomTemplate rt = new PyramidMain.RoomTemplate(
+				templateManager, 
+				"sc2", 
+				blockpos, 
+				rotation);
+		rt.addComponentParts(world, rand, sbb);
+
+		BlockPos blockpos2 = new BlockPos(0, 1, 0);
+		PyramidMain.RoomTemplate rt2 = new PyramidMain.RoomTemplate(
+				templateManager, 
+				"sc2", 
+				blockpos2, 
+				rotation);
+		rt2.addComponentParts(world, rand, sbb);
+
 		return true;
 	}
 	/**

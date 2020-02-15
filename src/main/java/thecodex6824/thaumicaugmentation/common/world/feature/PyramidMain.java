@@ -17,6 +17,22 @@ import net.minecraft.util.EnumFacing;
 import net.minecraft.world.gen.structure.template.TemplateManager;
 
 
+import net.minecraft.world.gen.structure.StructureComponentTemplate;
+
+import thecodex6824.thaumicaugmentation.api.ThaumicAugmentationAPI;
+
+
+import net.minecraft.block.BlockChest;
+import net.minecraft.block.state.IBlockState;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.util.Mirror;
+import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.Rotation;
+import net.minecraft.util.math.BlockPos;
+
+import net.minecraft.world.gen.structure.template.PlacementSettings;
+import net.minecraft.world.gen.structure.template.Template;
+import net.minecraft.world.storage.loot.LootTableList;
 
 /**
  * Based on a Twilight Forest maze by Benimatic.
@@ -84,6 +100,7 @@ public class PyramidMain extends StructureComponent {
             // set the seed to a fixed value based on this maze's x and z
             setFixedMazeSeed(newMaze, i);
             if (i == 0) {
+				// TODO: i -> areaShrinkage / 2
                 newMaze.addBonusRoom(centerRoomX-i, centerRoomZ-i, PyramidMap.ROOMCENTRAL);
                 newMaze.addBonusRoom(centerRoomX, 2, PyramidMap.ENTRANCE);
                 for (int j = 1; j <= nrooms; ++j) {
@@ -140,6 +157,11 @@ public class PyramidMain extends StructureComponent {
         }
  	}
 	
+	public List<PyramidMap> getMazeMap() {
+		return new ArrayList<PyramidMap>(this.mazes);
+	}	
+
+	
 	/**
 	 * Initiates construction of the Structure Component picked, at the current Location of StructGen
 	 */
@@ -193,6 +215,9 @@ public class PyramidMain extends StructureComponent {
                         room = makeRoom(PyramidMap.ROOM_GARDEN, dx, dz, l, levels.get(l));
                     }
                 }
+                if (type == PyramidMap.CORIDOR_BLOCKED) {
+					// TODO
+				}
                 if (type == PyramidMap.ENTRANCE) {
                     // if (rand.nextFloat() > 0.33) {
                     room = makeRoom(PyramidMap.ENTRANCE, dx, dz, entrance_mode, levels.get(l));
@@ -248,6 +273,87 @@ public class PyramidMain extends StructureComponent {
 		return true;
 	}
 
+	public static class RoomTemplate extends StructureComponentTemplate {
+            private String templateName;
+            private Rotation rotation;
+            private Mirror mirror;
+
+            public RoomTemplate() { }
+
+            public RoomTemplate(TemplateManager p_i47355_1_, String p_i47355_2_, BlockPos p_i47355_3_, Rotation p_i47355_4_) {
+                this(p_i47355_1_, p_i47355_2_, p_i47355_3_, p_i47355_4_, Mirror.NONE);
+            }
+
+            public RoomTemplate(TemplateManager p_i47356_1_, String p_i47356_2_, BlockPos p_i47356_3_, Rotation p_i47356_4_, Mirror p_i47356_5_) {
+                super(0);
+                this.templateName = p_i47356_2_;
+                this.templatePosition = p_i47356_3_;
+                this.rotation = p_i47356_4_;
+                this.mirror = p_i47356_5_;
+                this.loadTemplate(p_i47356_1_);
+            }
+
+            private void loadTemplate(TemplateManager p_191081_1_) {
+                Template template = p_191081_1_.getTemplate(
+					(MinecraftServer)null, 
+					new ResourceLocation(ThaumicAugmentationAPI.MODID, "structures/" + this.templateName)
+				);
+				System.out.println("trying to load template " + this.templateName);
+                PlacementSettings placementsettings = (new PlacementSettings()).setIgnoreEntities(true).setRotation(this.rotation).setMirror(this.mirror);
+                this.setup(template, this.templatePosition, placementsettings);
+            }
+
+            /**
+             * (abstract) Helper method to write subclass data to NBT
+             */
+            protected void writeStructureToNBT(NBTTagCompound tagCompound)
+            {
+                super.writeStructureToNBT(tagCompound);
+                tagCompound.setString("Template", this.templateName);
+                tagCompound.setString("Rot", this.placeSettings.getRotation().name());
+                tagCompound.setString("Mi", this.placeSettings.getMirror().name());
+            }
+
+            /**
+             * (abstract) Helper method to read subclass data from NBT
+             */
+            protected void readStructureFromNBT(NBTTagCompound tagCompound, TemplateManager p_143011_2_)
+            {
+                super.readStructureFromNBT(tagCompound, p_143011_2_);
+                this.templateName = tagCompound.getString("Template");
+                this.rotation = Rotation.valueOf(tagCompound.getString("Rot"));
+                this.mirror = Mirror.valueOf(tagCompound.getString("Mi"));
+                this.loadTemplate(p_143011_2_);
+            }
+
+            protected void handleDataMarker(String function, BlockPos pos, World worldIn, Random rand, StructureBoundingBox sbb)
+            {
+                if (function.startsWith("Chest"))
+                {
+                    Rotation rotation = this.placeSettings.getRotation();
+                    IBlockState iblockstate = Blocks.CHEST.getDefaultState();
+
+                    if ("ChestWest".equals(function))
+                    {
+                        iblockstate = iblockstate.withProperty(BlockChest.FACING, rotation.rotate(EnumFacing.WEST));
+                    }
+                    else if ("ChestEast".equals(function))
+                    {
+                        iblockstate = iblockstate.withProperty(BlockChest.FACING, rotation.rotate(EnumFacing.EAST));
+                    }
+                    else if ("ChestSouth".equals(function))
+                    {
+                        iblockstate = iblockstate.withProperty(BlockChest.FACING, rotation.rotate(EnumFacing.SOUTH));
+                    }
+                    else if ("ChestNorth".equals(function))
+                    {
+                        iblockstate = iblockstate.withProperty(BlockChest.FACING, rotation.rotate(EnumFacing.NORTH));
+                    }
+
+                    this.generateChest(worldIn, sbb, rand, pos, LootTableList.CHESTS_WOODLAND_MANSION, iblockstate);
+                }
+            }
+        }
 
 }
 

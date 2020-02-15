@@ -264,7 +264,6 @@ public class ChunkGeneratorEmptiness implements IChunkGenerator {
             chunk.getBiomeArray()[i] = (byte) Biome.getIdForBiome(biomes[i]);
         
         ChunkPos chunkpos = new ChunkPos(x, z);
-		System.out.println("Generating chunk " + chunkpos);
 		PYRAMID_GEN.generate(world, x, z, primer);
         chunk.generateSkylightMap();
         return chunk;
@@ -276,7 +275,6 @@ public class ChunkGeneratorEmptiness implements IChunkGenerator {
 
         BlockPos pos = new BlockPos(x * 16, 0, z * 16);
         ChunkPos chunkpos = new ChunkPos(x, z);
-		System.out.println("Populating chunk " + chunkpos);
 		
         Biome biome = world.getBiome(pos.add(16, 0, 16));
         rand.setSeed(world.getSeed());
@@ -295,7 +293,6 @@ public class ChunkGeneratorEmptiness implements IChunkGenerator {
     @Override
     public boolean generateStructures(Chunk chunkIn, int x, int z) {
 		ChunkPos chunkpos = new ChunkPos(x, z);
-		System.out.println("generateStructure at chunk " + chunkpos);
 		
         return false;
     }

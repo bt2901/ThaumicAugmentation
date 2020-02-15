@@ -37,6 +37,7 @@ public class PyramidMap {
 	public static final int ROOM2HIGH = 8;
 	public static final int ROOM_NO_CEILING = 9;
 	public static final int ROOM_VIRTUAL = 10;
+	public static final int CORIDOR_BLOCKED = 11;
 
 	public static final int ENTRANCE = 99;
 	public static final int ROOM_VPR = 100;
@@ -224,9 +225,36 @@ public class PyramidMap {
 		if (getRaw(rx + 4, rz) != OUT_OF_BOUNDS) {
 			putRaw(rx + 3, rz, ROOM);
 		}
-		if (getRaw(rx- 4, rz) != OUT_OF_BOUNDS) {
+		if (getRaw(rx - 4, rz) != OUT_OF_BOUNDS) {
 			putRaw(rx - 3, rz, ROOM);
 		}
+        if (type == ROOMCENTRAL) {
+			System.out.println("ADDING CORIDOR_BLOCKED CELL");
+			putRaw(rx - 2, rz + 3, CORIDOR_BLOCKED);
+			putRaw(rx + 2, rz + 3, CORIDOR_BLOCKED);
+			putRaw(rx - 2, rz + 4, CORIDOR_BLOCKED);
+			putRaw(rx + 2, rz + 4, CORIDOR_BLOCKED);
+			putRaw(rx - 2, rz + 5, CORIDOR_BLOCKED);
+			putRaw(rx + 2, rz + 5, CORIDOR_BLOCKED);
+			putRaw(rx - 2, rz + 6, CORIDOR_BLOCKED);
+			putRaw(rx + 2, rz + 6, CORIDOR_BLOCKED);
+			
+			putRaw(rx - 2, rz - 3, CORIDOR_BLOCKED);
+			putRaw(rx + 2, rz - 3, CORIDOR_BLOCKED);
+			putRaw(rx - 2, rz - 4, CORIDOR_BLOCKED);
+			putRaw(rx + 2, rz - 4, CORIDOR_BLOCKED);
+			putRaw(rx - 2, rz - 5, CORIDOR_BLOCKED);
+			putRaw(rx + 2, rz - 5, CORIDOR_BLOCKED);
+			putRaw(rx - 2, rz - 6, CORIDOR_BLOCKED);
+			putRaw(rx + 2, rz - 6, CORIDOR_BLOCKED);
+
+			putRaw(rx - 3, rz + 2, CORIDOR_BLOCKED);
+			putRaw(rx + 3, rz + 2, CORIDOR_BLOCKED);
+
+			putRaw(rx - 3, rz - 2, CORIDOR_BLOCKED);
+			putRaw(rx + 3, rz - 2, CORIDOR_BLOCKED);
+
+        }
 	}	
 	
 	
