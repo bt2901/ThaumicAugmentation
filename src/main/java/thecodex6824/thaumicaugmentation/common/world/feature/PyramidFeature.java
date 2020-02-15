@@ -2,6 +2,8 @@ package thecodex6824.thaumicaugmentation.common.world.feature;
 
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.List;
+import java.util.Random;
 
 import net.minecraft.world.gen.structure.MapGenStructure;
 import net.minecraft.world.gen.structure.MapGenStructureIO;
@@ -11,11 +13,11 @@ import net.minecraft.world.gen.structure.StructureComponent;
 import net.minecraft.world.gen.structure.StructureStart;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
+import net.minecraft.world.gen.structure.template.TemplateManager;
 
 import javax.annotation.Nullable;
 import net.minecraft.util.math.ChunkPos;
 
-import java.util.Random;
 import it.unimi.dsi.fastutil.objects.ObjectIterator;
 
 import thecodex6824.thaumicaugmentation.common.world.WorldProviderEmptiness;
@@ -88,7 +90,9 @@ public class PyramidFeature extends MapGenStructure {
 		static {
 			MapGenStructureIO.registerStructure(PyramidFeature.Start.class, "ZiggurathStart");
 			MapGenStructureIO.registerStructureComponent(ComponentPyramidRoom.class, "ZRoom");
-			MapGenStructureIO.registerStructureComponent(ComponentPyramidCentralRoom.class, "ZRoomCentral");
+			MapGenStructureIO.registerStructureComponent(PyramidMain.RoomTemplate.class, "ZRtpl");
+			
+			// MapGenStructureIO.registerStructureComponent(ComponentPyramidCentralRoom.class, "ZRoomCentral");
 			MapGenStructureIO.registerStructureComponent(PyramidMain.class, "ZMain");
 			MapGenStructureIO.registerStructureComponent(ComponentPyramidEntrance.class, "ZEnter");
 			MapGenStructureIO.registerStructureComponent(PyramidLevel.class, "ZLevel");
@@ -112,15 +116,17 @@ public class PyramidFeature extends MapGenStructure {
 
 			PyramidMain firstComponent = new PyramidMain(world, rand, x, y, z);
 			// this.components.addAll(list);
-			components.add((StructureComponent)firstComponent);
+			this.components.add((StructureComponent)firstComponent);
+			// add grid
 			firstComponent.buildComponent(firstComponent, components, rand);
 			
 			List<PyramidMap> mazemap = firstComponent.getMazeMap();
+			TemplateManager templateManager = world.getSaveHandler().getStructureTemplateManager();
 			
-			// add grid
-			// add rooms
-			// add templates
-
+			PyramidRoomPlacer prp = new PyramidRoomPlacer(mazemap, templateManager, world.getSeed());
+			Random random = new Random(42);
+			prp.buildRooms(this.components, random, firstComponent.getLevelBoundingBoxes());
+			
 			updateBoundingBox();
 		}		
 	}

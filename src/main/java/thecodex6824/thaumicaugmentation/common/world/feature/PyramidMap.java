@@ -232,21 +232,9 @@ public class PyramidMap {
 			System.out.println("ADDING CORIDOR_BLOCKED CELL");
 			putRaw(rx - 2, rz + 3, CORIDOR_BLOCKED);
 			putRaw(rx + 2, rz + 3, CORIDOR_BLOCKED);
-			putRaw(rx - 2, rz + 4, CORIDOR_BLOCKED);
-			putRaw(rx + 2, rz + 4, CORIDOR_BLOCKED);
-			putRaw(rx - 2, rz + 5, CORIDOR_BLOCKED);
-			putRaw(rx + 2, rz + 5, CORIDOR_BLOCKED);
-			putRaw(rx - 2, rz + 6, CORIDOR_BLOCKED);
-			putRaw(rx + 2, rz + 6, CORIDOR_BLOCKED);
 			
 			putRaw(rx - 2, rz - 3, CORIDOR_BLOCKED);
 			putRaw(rx + 2, rz - 3, CORIDOR_BLOCKED);
-			putRaw(rx - 2, rz - 4, CORIDOR_BLOCKED);
-			putRaw(rx + 2, rz - 4, CORIDOR_BLOCKED);
-			putRaw(rx - 2, rz - 5, CORIDOR_BLOCKED);
-			putRaw(rx + 2, rz - 5, CORIDOR_BLOCKED);
-			putRaw(rx - 2, rz - 6, CORIDOR_BLOCKED);
-			putRaw(rx + 2, rz - 6, CORIDOR_BLOCKED);
 
 			putRaw(rx - 3, rz + 2, CORIDOR_BLOCKED);
 			putRaw(rx + 3, rz + 2, CORIDOR_BLOCKED);

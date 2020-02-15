@@ -5,6 +5,8 @@ import java.util.Arrays;
 
 import net.minecraft.block.Block;
 import net.minecraft.init.Blocks;
+import net.minecraft.block.state.IBlockState;
+
 import net.minecraft.world.World;
 import net.minecraft.world.gen.structure.StructureBoundingBox;
 import net.minecraft.world.gen.structure.StructureBoundingBox;
@@ -196,15 +198,29 @@ public class PyramidLevel extends StructureComponent {
 						}
 					}
 				}
+				/*
 				if (getRaw(x, z) == PyramidMap.CORIDOR_BLOCKED) {
-					fillWithBlocks(world, sbb, 
-						mdx, 0, mdz, 
-						mdx + PyramidMain.evenBias, wallheight, mdz + PyramidMain.evenBias, 
-						PyramidMaterials.wallBlockAlt, PyramidMaterials.wallBlockAlt, false);
-					
-				}
-                
+					int worldX = mdx - 3;
+					int worldZ = mdz - 1;
 
+					// int maxShift = PyramidMain.evenBias + PyramidMain.oddBias;
+					int maxShift = 2;
+					IBlockState what = Blocks.DIRT.getDefaultState();
+					if(!isEven(x) && isEven(z)) {
+						what = Blocks.COBBLESTONE.getDefaultState();
+					}
+					if(isEven(x) && !isEven(z)) {
+						what = Blocks.STONE.getDefaultState();
+					}
+					fillWithBlocks(world, sbb, 
+						worldX, 0, worldZ, 
+						worldX + maxShift, wallheight, worldZ + maxShift, 
+						what, what, false);
+					fillWithAir(world, sbb, 
+						worldX + maxShift, 0, worldZ + maxShift, 
+						worldX + maxShift, wallheight, worldZ + maxShift);
+				}
+				*/
 			}
 		}
 	}

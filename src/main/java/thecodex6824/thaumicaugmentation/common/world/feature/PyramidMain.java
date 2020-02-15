@@ -58,8 +58,6 @@ public class PyramidMain extends StructureComponent {
 	public int worldY;
 	public int worldZ;
 
-	public long seed;
-			
 	protected int rawWidth;
 	protected int rawDepth;
 	
@@ -70,7 +68,9 @@ public class PyramidMain extends StructureComponent {
     // public    int cellsDepth = 33;
 	
     private ArrayList<PyramidMap> mazes = new ArrayList<PyramidMap>();
-    
+    private ArrayList<PyramidLevel> levels = new ArrayList<PyramidLevel>();
+
+	
     public PyramidMain() {
         super();
     }
@@ -81,7 +81,6 @@ public class PyramidMain extends StructureComponent {
         int centerRoomZ = cellsWidth/2;
 		this.width = cellsWidth;
 		this.depth = cellsDepth;
-		this.seed = world.getSeed();
 		
 		this.rawWidth = width * 2 + 1;
 		this.rawDepth = depth * 2 + 1;
@@ -159,7 +158,19 @@ public class PyramidMain extends StructureComponent {
 	
 	public List<PyramidMap> getMazeMap() {
 		return new ArrayList<PyramidMap>(this.mazes);
-	}	
+	}
+	
+	public StructureBoundingBox getLevelBoundingBox(int l) {
+		return levels.get(l).getBoundingBox();
+	}
+	
+	public List<StructureBoundingBox> getLevelBoundingBoxes() {
+		List<StructureBoundingBox> result = new ArrayList<StructureBoundingBox>();
+        for (int l=0; l < levelsTall; ++l) {
+			result.add(levels.get(l).getBoundingBox());
+		}
+		return result;
+	}
 
 	
 	/**
@@ -171,7 +182,6 @@ public class PyramidMain extends StructureComponent {
 		System.out.println("Building a pyramid");
         int entrance_mode = 0;
         
-        ArrayList<PyramidLevel> levels = new ArrayList<PyramidLevel>();
         int centerX = boundingBox.minX + ((boundingBox.maxX - boundingBox.minX) / 2);
         int centerZ = boundingBox.minZ + ((boundingBox.maxZ - boundingBox.minZ) / 2);
         for (int l=0; l < levelsTall; ++l) {
@@ -181,78 +191,8 @@ public class PyramidMain extends StructureComponent {
 			list.add(levelBuilder);
 			levelBuilder.buildComponent(this, list, random);
             levels.add(levelBuilder);
-            int[] rooms = mazes.get(l).rcoords;
-            
-            // add rooms where we have our coordinates
-            for (int i = 0; i < rooms.length / PyramidMap.ROOM_INFO_LEN; i++) {
-                int dx = rooms[i * PyramidMap.ROOM_INFO_LEN];
-                int dz = rooms[i * PyramidMap.ROOM_INFO_LEN + 1];
-                int type = rooms[i * PyramidMap.ROOM_INFO_LEN + 2];
-        
-                // add the room as a component
-				ComponentPyramidRoom room = makeRoom(type, dx, dz, l, levelBuilder);
-                list.add(room);
-                room.buildComponent(this, list, random);
-            }
 			levelBuilder.describe();
         }
-        // decorate rooms
-        for (int l=0; l < levelsTall; ++l) {
-            
-            int[] rooms = mazes.get(l).rcoords;
-            for (int i = 0; i < rooms.length / PyramidMap.ROOM_INFO_LEN; i++) {
-                int dx = rooms[i * PyramidMap.ROOM_INFO_LEN];
-                int dz = rooms[i * PyramidMap.ROOM_INFO_LEN + 1];
-                int type = rooms[i * PyramidMap.ROOM_INFO_LEN + 2];
-                
-                ComponentPyramidRoom room = null;
-                if (type == PyramidMap.ROOM_NO_CEILING_FANCY_ENTRANCE || type == PyramidMap.ROOM_NO_CEILING) {
-                    float r = random.nextFloat();
-                    if (r > 0.75) {
-                        room = makeRoom(PyramidMap.ROOM_VPR, dx, dz, l, levels.get(l));
-                    }
-                    if (r <= 0.75) {
-                        room = makeRoom(PyramidMap.ROOM_GARDEN, dx, dz, l, levels.get(l));
-                    }
-                }
-                if (type == PyramidMap.CORIDOR_BLOCKED) {
-					// TODO
-				}
-                if (type == PyramidMap.ENTRANCE) {
-                    // if (rand.nextFloat() > 0.33) {
-                    room = makeRoom(PyramidMap.ENTRANCE, dx, dz, entrance_mode, levels.get(l));
-                    //}
-                }
-                if (room != null) {
-                    list.add(room);
-                    room.buildComponent(this, list, random);
-                }				
-            }
-        }
-        
-	}
-    protected ComponentPyramidRoom makeRoom(int type, int dx, int dz, int i, PyramidLevel levelBuilder) {
-
-        Random random = new Random((i + 1) * this.seed + dx * 153 + dz * 615);
-
-		// TODO: without asymmetric -3 the 1.12 version places rooms wrong. Can anyone explain why?
-		int worldX = levelBuilder.getBoundingBox().minX + dx * (evenBias + oddBias) - 3;
-		int worldY = levelBuilder.getBoundingBox().minY;
-		int worldZ = levelBuilder.getBoundingBox().minZ + dz * (evenBias + oddBias) - 1;
-        if (type == PyramidMap.ROOMCENTRAL) {
-            return new ComponentPyramidCentralRoom(random, worldX, worldY, worldZ, i);
-        }
-        if (type == PyramidMap.ROOM_VPR) {
-            return new ComponentGardenRoom(random, worldX, worldY, worldZ);
-            // return new ComponentVoidProductionRoom(random, worldX, worldY, worldZ);
-        }
-        if (type == PyramidMap.ROOM_GARDEN) {
-            return new ComponentGardenRoom(random, worldX, worldY, worldZ);
-        }
-        if (type == PyramidMap.ENTRANCE) {
-            return new ComponentPyramidEntrance(random, worldX, worldY, worldZ, i);
-        }
-        return new ComponentPyramidRoom(random, worldX, worldY, worldZ, type);
 	}
 
 	@Override
@@ -293,12 +233,21 @@ public class PyramidMain extends StructureComponent {
                 this.loadTemplate(p_i47356_1_);
             }
 
+			@Override
+			public boolean addComponentParts(World worldIn, Random randomIn, StructureBoundingBox structureBoundingBoxIn) {
+				System.out.println("in addComponentParts for template");
+				return super.addComponentParts(worldIn, randomIn, structureBoundingBoxIn);
+			}
+
+
             private void loadTemplate(TemplateManager p_191081_1_) {
+				ResourceLocation rl = new ResourceLocation(ThaumicAugmentationAPI.MODID, "structures/" + this.templateName);
                 Template template = p_191081_1_.getTemplate(
 					(MinecraftServer)null, 
-					new ResourceLocation(ThaumicAugmentationAPI.MODID, "structures/" + this.templateName)
+					rl
 				);
 				System.out.println("trying to load template " + this.templateName);
+				System.out.println("ResourceLocation: " + rl);
                 PlacementSettings placementsettings = (new PlacementSettings()).setIgnoreEntities(true).setRotation(this.rotation).setMirror(this.mirror);
                 this.setup(template, this.templatePosition, placementsettings);
             }
@@ -328,6 +277,7 @@ public class PyramidMain extends StructureComponent {
 
             protected void handleDataMarker(String function, BlockPos pos, World worldIn, Random rand, StructureBoundingBox sbb)
             {
+				System.out.println("In handleDataMarker for template " + this.templateName);
                 if (function.startsWith("Chest"))
                 {
                     Rotation rotation = this.placeSettings.getRotation();
